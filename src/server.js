@@ -8,6 +8,9 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+app.use(express.static("public"));
+
+
 // Banco de dados fictício (em memória)
 let obras = [];
 

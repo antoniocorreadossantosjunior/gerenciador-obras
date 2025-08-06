@@ -2,24 +2,28 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerenciador de Obras</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Gerenciador de Obras</h1>
+  <h1>Gerenciador de Obras</h1>
 
-    <form id="form-obra">
-      <input type="text" id="nome" placeholder="Nome da Obra" required />
-      <input type="text" id="local" placeholder="Localização" required />
-      <input type="number" id="orcamento" placeholder="Orçamento (R$)" required />
-      <button type="submit">Cadastrar Obra</button>
-    </form>
+  <form id="obra-form">
+    <label for="nome">Nome da Obra</label>
+    <input type="text" id="nome" required />
 
-    <h2>Obras Cadastradas</h2>
-    <ul id="lista-obras"></ul>
-  </div>
+    <label for="localizacao">Localização</label>
+    <input type="text" id="localizacao" required />
+
+    <label for="orcamento">Orçamento (R$)</label>
+    <input type="number" id="orcamento" required />
+
+    <button type="submit">Cadastrar Obra</button>
+  </form>
+
+  <h2>Obras Cadastradas</h2>
+  <ul id="lista-obras"></ul>
 
   <script src="script.js"></script>
 </body>
