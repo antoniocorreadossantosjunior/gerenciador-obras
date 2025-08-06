@@ -1,40 +1,81 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Corpo da página */
 body {
   font-family: Arial, sans-serif;
   background-color: #f2f2f2;
-  padding: 20px;
+  padding: 30px;
+  color: #333;
 }
 
+/* Container principal */
 .container {
-  max-width: 600px;
-  margin: auto;
+  max-width: 800px;
+  margin: 0 auto;
   background: #fff;
+  padding: 30px;
   border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 0 10px #ccc;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
-input, button {
-  display: block;
-  width: 100%;
+/* Título */
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #007bff;
+}
+
+/* Formulário */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+/* Labels e Inputs */
+label {
+  font-weight: bold;
+}
+
+input {
   padding: 10px;
-  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
 }
 
+/* Botão */
 button {
-  background-color: #2e7d32;
+  background-color: #007bff;
   color: white;
+  padding: 12px;
   border: none;
+  border-radius: 6px;
+  font-size: 16px;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-ul {
-  list-style-type: none;
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Lista de obras */
+#listaObras {
+  list-style: none;
   padding: 0;
 }
 
-li {
-  background-color: #eee;
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: 5px;
+#listaObras li {
+  background-color: #f9f9f9;
+  border-left: 5px solid #007bff;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 6px;
 }

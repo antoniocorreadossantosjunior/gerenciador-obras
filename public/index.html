@@ -2,22 +2,22 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerenciador de Obras</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <h1>Gerenciador de Obras</h1>
 
-  <form id="obra-form">
+  <form id="formObra">
     <label for="nome">Nome da Obra</label>
-    <input type="text" id="nome" required />
+    <input type="text" id="nome" name="nome" required />
 
     <label for="localizacao">Localização</label>
-    <input type="text" id="localizacao" required />
+    <input type="text" id="localizacao" name="localizacao" required />
 
     <label for="orcamento">Orçamento (R$)</label>
-    <input type="number" id="orcamento" required />
+    <input type="number" id="orcamento" name="orcamento" required />
 
     <button type="submit">Cadastrar Obra</button>
   </form>
@@ -25,6 +25,120 @@
   <h2>Obras Cadastradas</h2>
   <ul id="lista-obras"></ul>
 
-  <script src="script.js"></script>
+  <script>
+    const form = document.getElementById("formObra");
+    const listaObras = document.getElementById("lista-obras");
+
+    // Função para carregar e mostrar as obras
+    async function carregarObras() {
+      const res = await fetch("http://localhost:3000/obras");
+      const obras = await res.json();
+
+      listaObras.innerHTML = "";
+
+      obras.forEach(obra => {
+        const li = document.createElement("li");
+        li.dataset.id = obra.id;
+
+        li.innerHTML = `
+          <strong>${obra.nome}</strong> - ${obra.localizacao} - R$ ${obra.orcamento.toFixed(2)}
+          <button class="btn-editar">Editar</button>
+          <button class="btn-excluir">Excluir</button>
+          <div class="editar-form" style="display:none; margin-top:10px;">
+            <input type="text" class="edit-nome" value="${obra.nome}" />
+            <input type="text" class="edit-localizacao" value="${obra.localizacao}" />
+            <input type="number" class="edit-orcamento" value="${obra.orcamento}" />
+            <button class="btn-salvar">Salvar</button>
+            <button class="btn-cancelar">Cancelar</button>
+          </div>
+        `;
+
+        listaObras.appendChild(li);
+      });
+
+      adicionarEventos();
+    }
+
+    // Adicionar eventos aos botões dinamicamente criados
+    function adicionarEventos() {
+      document.querySelectorAll(".btn-excluir").forEach(btn => {
+        btn.onclick = async (e) => {
+          const li = e.target.closest("li");
+          const id = li.dataset.id;
+          if (confirm("Confirma excluir essa obra?")) {
+            await fetch(`http://localhost:3000/obras/${id}`, { method: "DELETE" });
+            carregarObras();
+          }
+        };
+      });
+
+      document.querySelectorAll(".btn-editar").forEach(btn => {
+        btn.onclick = (e) => {
+          const li = e.target.closest("li");
+          li.querySelector(".editar-form").style.display = "block";
+          e.target.style.display = "none";
+          li.querySelector(".btn-excluir").style.display = "none";
+        };
+      });
+
+      document.querySelectorAll(".btn-cancelar").forEach(btn => {
+        btn.onclick = (e) => {
+          const li = e.target.closest("li");
+          li.querySelector(".editar-form").style.display = "none";
+          li.querySelector(".btn-editar").style.display = "inline";
+          li.querySelector(".btn-excluir").style.display = "inline";
+        };
+      });
+
+      document.querySelectorAll(".btn-salvar").forEach(btn => {
+        btn.onclick = async (e) => {
+          const li = e.target.closest("li");
+          const id = li.dataset.id;
+          const nome = li.querySelector(".edit-nome").value.trim();
+          const localizacao = li.querySelector(".edit-localizacao").value.trim();
+          const orcamento = parseFloat(li.querySelector(".edit-orcamento").value);
+
+          if (!nome || !localizacao || isNaN(orcamento)) {
+            alert("Preencha todos os campos corretamente!");
+            return;
+          }
+
+          await fetch(`http://localhost:3000/obras/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nome, localizacao, orcamento }),
+          });
+
+          carregarObras();
+        };
+      });
+    }
+
+    // Cadastro de nova obra
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nome = form.nome.value.trim();
+      const localizacao = form.localizacao.value.trim();
+      const orcamento = parseFloat(form.orcamento.value);
+
+      if (!nome || !localizacao || isNaN(orcamento)) {
+        alert("Preencha todos os campos corretamente!");
+        return;
+      }
+
+      await fetch("http://localhost:3000/obras", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, localizacao, orcamento }),
+      });
+
+      form.reset();
+      carregarObras();
+    });
+
+    carregarObras();
+  </script>
 </body>
 </html>
+
