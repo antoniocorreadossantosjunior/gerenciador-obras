@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gerenciador de Obras</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 800px;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .obra {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+    }
+    button {
+      cursor: pointer;
+      padding: 6px 12px;
+      margin-top: 8px;
+    }
+    input, select {
+      padding: 6px;
+      margin: 4px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    .section {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerenciador de Obras</h1>
+
+  <section class="section" id="lista-obras">
+    <h2>Obras Cadastradas</h2>
+    <div id="obras-container">Carregando obras...</div>
+  </section>
+
+  <section class="section" id="adicionar-obra">
+    <h2>Adicionar Nova Obra</h2>
+    <form id="form-obra">
+      <label for="nome">Nome da Obra</label>
+      <input type="text" id="nome" required />
+      <label for="endereco">Endereço</label>
+      <input type="text" id="endereco" required />
+      <button type="submit">Adicionar Obra</button>
+    </form>
+  </section>
+
+  <script>
+    const obrasContainer = document.getElementById("obras-container");
+    const formObra = document.getElementById("form-obra");
+
+    // Função para buscar obras da API
+    async function carregarObras() {
+      obrasContainer.innerHTML = "Carregando obras...";
+      try {
+        const res = await fetch("/obras");
+        const obras = await res.json();
+
+        if (obras.length === 0) {
+          obrasContainer.innerHTML = "<p>Nenhuma obra cadastrada.</p>";
+          return;
+        }
+
+        obrasContainer.innerHTML = "";
+        obras.forEach(obra => {
+          const div = document.createElement("div");
+          div.classList.add("obra");
+
+          div.innerHTML = `
+            <h3>${obra.nome}</h3>
+            <p><strong>Endereço:</strong> ${obra.endereco}</p>
+            <p><strong>Etapas:</strong> ${obra.etapas.length}</p>
+            <p><strong>Materiais:</strong> ${obra.materiais.length}</p>
+          `;
+
+          obrasContainer.appendChild(div);
+        });
+      } catch (error) {
+        obrasContainer.innerHTML = "<p>Erro ao carregar obras.</p>";
+      }
+    }
+
+    // Função para adicionar obra
+    formObra.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("nome").value.trim();
+      const endereco = document.getElementById("endereco").value.trim();
+
+      if (!nome || !endereco) {
+        alert("Preencha todos os campos.");
+        return;
+      }
+
+      try {
+        const res = await fetch("/obras", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome, endereco }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao adicionar obra");
+
+        alert("Obra adicionada com sucesso!");
+        formObra.reset();
+        carregarObras();
+      } catch (error) {
+        alert("Erro ao adicionar obra.");
+      }
+    });
+
+    carregarObras();
+  </script>
+</body>
+</html>
