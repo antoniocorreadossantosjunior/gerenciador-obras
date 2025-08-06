@@ -1,81 +1,145 @@
 /* Reset básico */
 * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Corpo da página */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f2f2f2;
-  padding: 30px;
+  max-width: 600px;
+  margin: 40px auto;
+  background-color: #f9f9f9;
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.1);
   color: #333;
 }
 
-/* Container principal */
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  background: #fff;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-}
-
-/* Título */
 h1 {
   text-align: center;
-  margin-bottom: 30px;
-  color: #007bff;
+  margin-bottom: 25px;
+  color: #2c3e50;
 }
 
-/* Formulário */
 form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   margin-bottom: 30px;
 }
 
-/* Labels e Inputs */
 label {
-  font-weight: bold;
+  font-weight: 600;
+  color: #34495e;
 }
 
-input {
+input[type="text"],
+input[type="number"] {
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 16px;
+  border-radius: 5px;
+  border: 1.5px solid #ccc;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
 }
 
-/* Botão */
-button {
-  background-color: #007bff;
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: #8e44ad;
+  outline: none;
+}
+
+button[type="submit"] {
+  background-color: #8e44ad;
   color: white;
+  font-weight: 700;
   padding: 12px;
   border: none;
-  border-radius: 6px;
-  font-size: 16px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 1.1rem;
+  transition: background-color 0.3s ease;
 }
 
-button:hover {
-  background-color: #0056b3;
+button[type="submit"]:hover {
+  background-color: #732d91;
 }
 
-/* Lista de obras */
-#listaObras {
+h2 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+ul#lista-obras {
   list-style: none;
-  padding: 0;
 }
 
-#listaObras li {
-  background-color: #f9f9f9;
-  border-left: 5px solid #007bff;
-  padding: 15px;
+ul#lista-obras li {
+  background-color: white;
+  padding: 12px 15px;
   margin-bottom: 10px;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+ul#lista-obras li strong {
+  font-weight: 700;
+  margin-right: 10px;
+  color: #5e35b1;
+}
+
+ul#lista-obras button {
+  margin-left: 10px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-excluir {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-excluir:hover {
+  background-color: #c0392b;
+}
+
+.btn-editar {
+  background-color: #2980b9;
+  color: white;
+}
+
+.btn-editar:hover {
+  background-color: #1c5980;
+}
+
+.editar-form input {
+  width: 120px;
+  margin-right: 8px;
+}
+
+.btn-salvar {
+  background-color: #27ae60;
+  color: white;
+}
+
+.btn-salvar:hover {
+  background-color: #1f8a4c;
+}
+
+.btn-cancelar {
+  background-color: #95a5a6;
+  color: white;
+  margin-left: 5px;
+}
+
+.btn-cancelar:hover {
+  background-color: #7f8c8d;
 }
