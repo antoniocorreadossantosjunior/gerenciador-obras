@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerenciador de Obras</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <h1>Gerenciador de Obras</h1>
@@ -19,126 +20,95 @@
     <label for="orcamento">Orçamento (R$)</label>
     <input type="number" id="orcamento" name="orcamento" required />
 
+  <label for="progresso">Progresso da Obra (%)</label>
+<input type="number" id="progresso" name="progresso" min="0" max="100" required />
+
     <button type="submit">Cadastrar Obra</button>
   </form>
 
+  <button id="btn-gerar-pdf">Gerar PDF dos Orçamentos</button>
+
   <h2>Obras Cadastradas</h2>
   <ul id="lista-obras"></ul>
+<script>
+  const form = document.getElementById("obra-form");
+  const obrasList = document.getElementById("obras-list");
+  const btnCadastrar = document.getElementById("btn-cadastrar");
 
-  <script>
-    const form = document.getElementById("formObra");
-    const listaObras = document.getElementById("lista-obras");
+  let obras = [];
+  let editando = false;
+  let obraEditandoIndex = null;
 
-    // Função para carregar e mostrar as obras
-    async function carregarObras() {
-      const res = await fetch("http://localhost:3000/obras");
-      const obras = await res.json();
+  function renderizarObras() {
+    obrasList.innerHTML = "";
 
-      listaObras.innerHTML = "";
+    obras.forEach((obra, index) => {
+      const item = document.createElement("li");
+      item.innerHTML = `
+        ${obra.nome} - ${obra.localizacao} - R$ ${parseFloat(obra.orcamento).toFixed(2)} - ${obra.progresso}% 
+        <button onclick="editarObra(${index})">Editar</button>
+      `;
+      obrasList.appendChild(item);
+    });
+  }
 
-      obras.forEach(obra => {
-        const li = document.createElement("li");
-        li.dataset.id = obra.id;
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-        li.innerHTML = `
-          <strong>${obra.nome}</strong> - ${obra.localizacao} - R$ ${obra.orcamento.toFixed(2)}
-          <button class="btn-editar">Editar</button>
-          <button class="btn-excluir">Excluir</button>
-          <div class="editar-form" style="display:none; margin-top:10px;">
-            <input type="text" class="edit-nome" value="${obra.nome}" />
-            <input type="text" class="edit-localizacao" value="${obra.localizacao}" />
-            <input type="number" class="edit-orcamento" value="${obra.orcamento}" />
-            <button class="btn-salvar">Salvar</button>
-            <button class="btn-cancelar">Cancelar</button>
-          </div>
-        `;
+    const novaObra = {
+      nome: form.nome.value,
+      localizacao: form.localizacao.value,
+      orcamento: form.orcamento.value,
+      progresso: form.progresso.value,
+    };
 
-        listaObras.appendChild(li);
+    if (editando) {
+      // Editando obra existente
+      obras[obraEditandoIndex] = novaObra;
+
+      await fetch("/obras", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index: obraEditandoIndex, obra: novaObra }),
       });
 
-      adicionarEventos();
-    }
-
-    // Adicionar eventos aos botões dinamicamente criados
-    function adicionarEventos() {
-      document.querySelectorAll(".btn-excluir").forEach(btn => {
-        btn.onclick = async (e) => {
-          const li = e.target.closest("li");
-          const id = li.dataset.id;
-          if (confirm("Confirma excluir essa obra?")) {
-            await fetch(`http://localhost:3000/obras/${id}`, { method: "DELETE" });
-            carregarObras();
-          }
-        };
-      });
-
-      document.querySelectorAll(".btn-editar").forEach(btn => {
-        btn.onclick = (e) => {
-          const li = e.target.closest("li");
-          li.querySelector(".editar-form").style.display = "block";
-          e.target.style.display = "none";
-          li.querySelector(".btn-excluir").style.display = "none";
-        };
-      });
-
-      document.querySelectorAll(".btn-cancelar").forEach(btn => {
-        btn.onclick = (e) => {
-          const li = e.target.closest("li");
-          li.querySelector(".editar-form").style.display = "none";
-          li.querySelector(".btn-editar").style.display = "inline";
-          li.querySelector(".btn-excluir").style.display = "inline";
-        };
-      });
-
-      document.querySelectorAll(".btn-salvar").forEach(btn => {
-        btn.onclick = async (e) => {
-          const li = e.target.closest("li");
-          const id = li.dataset.id;
-          const nome = li.querySelector(".edit-nome").value.trim();
-          const localizacao = li.querySelector(".edit-localizacao").value.trim();
-          const orcamento = parseFloat(li.querySelector(".edit-orcamento").value);
-
-          if (!nome || !localizacao || isNaN(orcamento)) {
-            alert("Preencha todos os campos corretamente!");
-            return;
-          }
-
-          await fetch(`http://localhost:3000/obras/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome, localizacao, orcamento }),
-          });
-
-          carregarObras();
-        };
-      });
-    }
-
-    // Cadastro de nova obra
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const nome = form.nome.value.trim();
-      const localizacao = form.localizacao.value.trim();
-      const orcamento = parseFloat(form.orcamento.value);
-
-      if (!nome || !localizacao || isNaN(orcamento)) {
-        alert("Preencha todos os campos corretamente!");
-        return;
-      }
-
-      await fetch("http://localhost:3000/obras", {
+      editando = false;
+      obraEditandoIndex = null;
+      btnCadastrar.textContent = "Cadastrar Obra";
+    } else {
+      // Nova obra
+      await fetch("/obras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, localizacao, orcamento }),
+        body: JSON.stringify(novaObra),
       });
+    }
 
-      form.reset();
-      carregarObras();
-    });
+    form.reset();
+    buscarObras();
+  });
 
-    carregarObras();
-  </script>
+  async function buscarObras() {
+    const res = await fetch("/obras");
+    obras = await res.json();
+    renderizarObras();
+  }
+
+  window.editarObra = function (index) {
+    const obra = obras[index];
+    form.nome.value = obra.nome;
+    form.localizacao.value = obra.localizacao;
+    form.orcamento.value = obra.orcamento;
+    form.progresso.value = obra.progresso;
+    editando = true;
+    obraEditandoIndex = index;
+    btnCadastrar.textContent = "Salvar Alterações";
+  };
+
+  buscarObras();
+</script>
+
+  
 </body>
 </html>
 

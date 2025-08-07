@@ -43,16 +43,6 @@ app.post("/obras", (req, res) => {
   console.log("Obra cadastrada:", novaObra);
   res.status(201).json(novaObra);
 });
-// Editar obra existente
-app.put("/obras", (req, res) => {
-  const { index, obra } = req.body;
-  if (index >= 0 && index < obras.length) {
-    obras[index] = obra;
-    res.status(200).json({ mensagem: "Obra atualizada com sucesso!" });
-  } else {
-    res.status(404).json({ mensagem: "Obra não encontrada." });
-  }
-});
 
 // Inicia o servidor
 app.listen(port, () => {
