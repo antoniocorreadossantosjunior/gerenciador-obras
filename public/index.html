@@ -4,111 +4,222 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerenciador de Obras</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Exemplo simples de barra de progresso */
+    .barra {
+      background: #ddd;
+      width: 100%;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progresso {
+      background: #4caf50;
+      height: 100%;
+      width: 0;
+      transition: width 0.3s ease;
+    }
+    .obra {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    button {
+      margin-right: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <h1>Gerenciador de Obras</h1>
 
   <form id="formObra">
-    <label for="nome">Nome da Obra</label>
-    <input type="text" id="nome" name="nome" required />
+    <label for="nome">Nome da Obra</label><br />
+    <input type="text" id="nome" required /><br />
 
-    <label for="localizacao">Localização</label>
-    <input type="text" id="localizacao" name="localizacao" required />
+    <label for="localizacao">Localização</label><br />
+    <input type="text" id="localizacao" required /><br />
 
-    <label for="orcamento">Orçamento (R$)</label>
-    <input type="number" id="orcamento" name="orcamento" required />
+    <label for="orcamento">Orçamento (R$)</label><br />
+    <input type="number" id="orcamento" required min="0" step="0.01" /><br />
 
-  <label for="progresso">Progresso da Obra (%)</label>
-<input type="number" id="progresso" name="progresso" min="0" max="100" required />
+    <label for="responsavel">Responsável</label><br />
+    <input type="text" id="responsavel" placeholder="Opcional" /><br />
+
+    <label for="etapa">Etapa</label><br />
+    <input type="text" id="etapa" placeholder="Opcional" /><br />
+
+    <label for="progresso">Progresso (%)</label><br />
+    <input type="number" id="progresso" min="0" max="100" value="0" /><br /><br />
 
     <button type="submit">Cadastrar Obra</button>
   </form>
 
-  <button id="btn-gerar-pdf">Gerar PDF dos Orçamentos</button>
-
   <h2>Obras Cadastradas</h2>
-  <ul id="lista-obras"></ul>
-<script>
-  const form = document.getElementById("obra-form");
-  const obrasList = document.getElementById("obras-list");
-  const btnCadastrar = document.getElementById("btn-cadastrar");
+  <div id="lista-obras"></div>
 
-  let obras = [];
-  let editando = false;
-  let obraEditandoIndex = null;
+  <script>
+    const API_URL = "http://localhost:3000";
+    const form = document.getElementById("formObra");
+    const listaObras = document.getElementById("lista-obras");
+    let obras = [];
 
-  function renderizarObras() {
-    obrasList.innerHTML = "";
+    // Carregar obras do backend
+    async function carregarObras() {
+      try {
+        const res = await fetch(`${API_URL}/obras`);
+        if (!res.ok) throw new Error("Erro ao buscar obras");
+        obras = await res.json();
+        exibirObras();
+      } catch (error) {
+        alert("Erro ao carregar obras: " + error.message);
+      }
+    }
 
-    obras.forEach((obra, index) => {
-      const item = document.createElement("li");
-      item.innerHTML = `
-        ${obra.nome} - ${obra.localizacao} - R$ ${parseFloat(obra.orcamento).toFixed(2)} - ${obra.progresso}% 
-        <button onclick="editarObra(${index})">Editar</button>
-      `;
-      obrasList.appendChild(item);
-    });
-  }
+    // Exibir obras na tela
+    function exibirObras() {
+      listaObras.innerHTML = "";
 
-  form.addEventListener("submit", async function (e) {
-    e.preventDefault();
+      if (obras.length === 0) {
+        listaObras.innerHTML = "<p>Nenhuma obra cadastrada.</p>";
+        return;
+      }
 
-    const novaObra = {
-      nome: form.nome.value,
-      localizacao: form.localizacao.value,
-      orcamento: form.orcamento.value,
-      progresso: form.progresso.value,
-    };
+      obras.forEach((obra) => {
+        const div = document.createElement("div");
+        div.classList.add("obra");
 
-    if (editando) {
-      // Editando obra existente
-      obras[obraEditandoIndex] = novaObra;
+        div.innerHTML = `
+          <h3>${obra.nome}</h3>
+          <p><strong>Localização:</strong> ${obra.localizacao}</p>
+          <p><strong>Orçamento:</strong> R$ ${obra.orcamento.toFixed(2)}</p>
+          <p><strong>Responsável:</strong> ${obra.responsavel || "Não informado"}</p>
+          <p><strong>Etapa:</strong> ${obra.etapa || "Inicial"}</p>
+          <p><strong>Progresso:</strong> ${obra.progresso}%</p>
+          <div class="barra"><div class="progresso" style="width: ${obra.progresso}%;"></div></div>
+          <button onclick="editarObra(${obra.id})">Editar</button>
+          <button onclick="excluirObra(${obra.id})">Excluir</button>
+        `;
 
-      await fetch("/obras", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ index: obraEditandoIndex, obra: novaObra }),
-      });
-
-      editando = false;
-      obraEditandoIndex = null;
-      btnCadastrar.textContent = "Cadastrar Obra";
-    } else {
-      // Nova obra
-      await fetch("/obras", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novaObra),
+        listaObras.appendChild(div);
       });
     }
 
-    form.reset();
-    buscarObras();
-  });
+    // Excluir obra
+    async function excluirObra(id) {
+      if (!confirm("Tem certeza que deseja excluir esta obra?")) return;
 
-  async function buscarObras() {
-    const res = await fetch("/obras");
-    obras = await res.json();
-    renderizarObras();
-  }
+      try {
+        const res = await fetch(`${API_URL}/obras/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const erro = await res.json();
+            throw new Error(erro.mensagem || "Erro ao excluir.");
+          } else {
+            const texto = await res.text();
+            throw new Error(texto || "Erro ao excluir.");
+          }
+        }
 
-  window.editarObra = function (index) {
-    const obra = obras[index];
-    form.nome.value = obra.nome;
-    form.localizacao.value = obra.localizacao;
-    form.orcamento.value = obra.orcamento;
-    form.progresso.value = obra.progresso;
-    editando = true;
-    obraEditandoIndex = index;
-    btnCadastrar.textContent = "Salvar Alterações";
-  };
+        obras = obras.filter((o) => o.id !== id);
+        exibirObras();
+        alert("Obra excluída com sucesso!");
+      } catch (error) {
+        alert("Falha ao excluir a obra: " + error.message);
+      }
+    }
 
-  buscarObras();
-</script>
+    // Editar obra - usando prompt simples
+    async function editarObra(id) {
+      const obra = obras.find((o) => o.id === id);
+      if (!obra) return alert("Obra não encontrada.");
 
-  
+      const nome = prompt("Nome da Obra:", obra.nome);
+      if (!nome || nome.trim() === "") return alert("Nome é obrigatório.");
+
+      const localizacao = prompt("Localização:", obra.localizacao);
+      if (!localizacao || localizacao.trim() === "")
+        return alert("Localização é obrigatória.");
+
+      const orcamentoStr = prompt("Orçamento (número):", obra.orcamento);
+      const orcamento = parseFloat(orcamentoStr);
+      if (isNaN(orcamento)) return alert("Orçamento inválido.");
+
+      const responsavel = prompt("Responsável (opcional):", obra.responsavel || "");
+      const etapa = prompt("Etapa (opcional):", obra.etapa || "");
+
+      const progressoStr = prompt("Progresso (0-100):", obra.progresso);
+      const progresso = parseInt(progressoStr);
+      if (isNaN(progresso) || progresso < 0 || progresso > 100)
+        return alert("Progresso inválido.");
+
+      try {
+        const res = await fetch(`${API_URL}/obras/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nome: nome.trim(),
+            localizacao: localizacao.trim(),
+            orcamento,
+            responsavel: responsavel.trim() || undefined,
+            etapa: etapa.trim() || undefined,
+            progresso,
+          }),
+        });
+
+        if (!res.ok) {
+          const erro = await res.json();
+          throw new Error(erro.mensagem || "Erro ao editar obra.");
+        }
+
+        carregarObras();
+      } catch (error) {
+        alert("Erro ao editar obra: " + error.message);
+      }
+    }
+
+    // Evento submit para cadastrar obra
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const obra = {
+        nome: form.nome.value.trim(),
+        localizacao: form.localizacao.value.trim(),
+        orcamento: parseFloat(form.orcamento.value),
+        responsavel: form.responsavel.value.trim() || undefined,
+        etapa: form.etapa.value.trim() || undefined,
+        progresso: parseInt(form.progresso.value) || 0,
+      };
+
+      if (!obra.nome || !obra.localizacao || isNaN(obra.orcamento)) {
+        alert("Preencha os campos obrigatórios corretamente.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/obras`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(obra),
+        });
+
+        if (!res.ok) {
+          const erro = await res.json();
+          throw new Error(erro.mensagem || "Erro ao cadastrar obra.");
+        }
+
+        form.reset();
+        carregarObras();
+      } catch (error) {
+        alert("Erro ao cadastrar obra: " + error.message);
+      }
+    });
+
+    // Inicializa carregando obras
+    carregarObras();
+  </script>
 </body>
 </html>
-

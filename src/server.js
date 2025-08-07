@@ -4,54 +4,71 @@ const cors = require("cors");
 const app = express();
 const port = 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // pasta dos arquivos frontend
 
-// Simulando banco de dados
+// Array para armazenar obras
 let obras = [];
 
-// Rota inicial
-app.get("/", (req, res) => {
-  res.send("Bem-vindo ao Gerenciador de Obras!");
-});
-
-// ✅ Rota para obter todas as obras
+// Listar todas as obras
 app.get("/obras", (req, res) => {
   res.json(obras);
 });
 
-// ✅ Rota para cadastrar nova obra
+// Cadastrar nova obra
 app.post("/obras", (req, res) => {
-  console.log("POST /obras recebido:", req.body);
-  const { nome, localizacao, orcamento, progresso } = req.body;
+  const { nome, localizacao, orcamento, responsavel, etapa, progresso } = req.body;
 
-  if (!nome || !localizacao || !orcamento) {
-    return res.status(400).json({ mensagem: "Todos os campos são obrigatórios." });
+  if (!nome || !localizacao || typeof orcamento !== "number" || isNaN(orcamento)) {
+    return res.status(400).json({ mensagem: "Campos obrigatórios inválidos." });
   }
 
   const novaObra = {
     id: Date.now(),
-    nome,
-    localizacao,
-    orcamento: parseFloat(orcamento),
-    progresso: progresso || 0,
+    nome: nome.trim(),
+    localizacao: localizacao.trim(),
+    orcamento,
+    responsavel: responsavel ? responsavel.trim() : "Não informado",
+    etapa: etapa ? etapa.trim() : "Inicial",
+    progresso: typeof progresso === "number" && !isNaN(progresso) ? progresso : 0,
   };
 
   obras.push(novaObra);
-  console.log("Obra cadastrada:", novaObra);
   res.status(201).json(novaObra);
 });
-// Editar obra existente
-app.put("/obras", (req, res) => {
-  const { index, obra } = req.body;
-  if (index >= 0 && index < obras.length) {
-    obras[index] = obra;
-    res.status(200).json({ mensagem: "Obra atualizada com sucesso!" });
-  } else {
-    res.status(404).json({ mensagem: "Obra não encontrada." });
-  }
+
+// Atualizar obra
+app.put("/obras/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ mensagem: "ID inválido." });
+
+  const obra = obras.find(o => o.id === id);
+  if (!obra) return res.status(404).json({ mensagem: "Obra não encontrada." });
+
+  const { nome, localizacao, orcamento, responsavel, etapa, progresso } = req.body;
+
+  if (nome && nome.trim() !== "") obra.nome = nome.trim();
+  if (localizacao && localizacao.trim() !== "") obra.localizacao = localizacao.trim();
+
+  if (typeof orcamento === "number" && !isNaN(orcamento)) obra.orcamento = orcamento;
+  if (typeof progresso === "number" && !isNaN(progresso)) obra.progresso = progresso;
+
+  if (responsavel !== undefined) obra.responsavel = responsavel.trim() !== "" ? responsavel.trim() : obra.responsavel;
+  if (etapa !== undefined) obra.etapa = etapa.trim() !== "" ? etapa.trim() : obra.etapa;
+
+  res.json(obra);
+});
+
+// Excluir obra
+app.delete("/obras/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ mensagem: "ID inválido." });
+
+  const index = obras.findIndex(o => o.id === id);
+  if (index === -1) return res.status(404).json({ mensagem: "Obra não encontrada." });
+
+  obras.splice(index, 1);
+  res.json({ mensagem: "Obra excluída com sucesso." });
 });
 
 // Inicia o servidor
