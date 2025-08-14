@@ -1,39 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerenciador de Obras</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
+      background: #f5f5f5;
       padding: 20px;
     }
-
-    h1,
-    h2 {
+    h1, h2 {
       color: #333;
     }
-
-    form {
-      background: white;
+    form, .obra {
+      background: #fff;
       padding: 15px;
       border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
-      max-width: 400px;
     }
-
     label {
       display: block;
       margin-top: 10px;
       font-weight: bold;
     }
-
-    input,
-    select {
+    input, select {
       width: 100%;
       padding: 8px;
       margin-top: 5px;
@@ -41,302 +33,251 @@
       border: 1px solid #ccc;
       box-sizing: border-box;
     }
-
     button {
-      margin-top: 15px;
-      background: #4CAF50;
-      color: white;
+      margin-top: 10px;
+      padding: 8px 12px;
       border: none;
-      padding: 10px 15px;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 16px;
     }
-
-    button:hover {
-      background: #45a049;
-    }
-
-    .mensagem {
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 4px;
-      color: white;
-      display: none;
-      max-width: 400px;
-    }
-
-    .mensagem.sucesso {
-      background-color: #4CAF50;
-    }
-
-    .obra {
-      background: white;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      transition: background 0.3s ease;
-    }
-
-    .obra.inicial {
-      background-color: #f0f0f0;
-    }
-
-    .obra.andamento {
-      background-color: #d0e7ff;
-    }
-
-    .obra.concluida {
-      background-color: #d0ffd6;
-    }
-
-    .btn-excluir,
-    .btn-editar {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-right: 10px;
-      font-size: 14px;
-    }
-
-    .btn-editar {
-      background: #2980b9;
-    }
-
-    .btn-excluir:hover {
-      background: #c0392b;
-    }
-
-    .btn-editar:hover {
-      background: #1f6391;
-    }
-
-    .barra {
-      background: #ddd;
-      width: 100%;
-      height: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-
-    .progresso {
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-
-    .progresso.inicial {
-      background-color: gray;
-    }
-
-    .progresso.andamento {
-      background-color: blue;
-    }
-
-    .progresso.concluida {
-      background-color: green;
-    }
+    .btn-editar { background: #2980b9; color: white; }
+    .btn-excluir { background: #e74c3c; color: white; margin-left: 5px; }
+    .btn-editar:hover { background: #1f6391; }
+    .btn-excluir:hover { background: #c0392b; }
+    .barra { background: #ddd; width: 100%; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 5px; }
+    .progresso { background: #4caf50; height: 100%; width: 0%; transition: width 0.3s ease; }
+    .etapa, .material { background: #f0f0f0; padding: 8px; margin-top: 8px; border-radius: 4px; }
+    .material { margin-left: 15px; }
   </style>
 </head>
-
 <body>
 
-  <h1>Gerenciador de Obras</h1>
+<h1>Gerenciador de Obras</h1>
 
-  <div id="mensagem" class="mensagem"></div>
+<h2>Cadastrar Nova Obra</h2>
+<form id="form-obra">
+  <label>Nome da Obra:</label>
+  <input type="text" id="nome" required>
+  <label>Localização:</label>
+  <input type="text" id="localizacao" required>
+  <label>Responsável:</label>
+  <input type="text" id="responsavel">
+  <label>Status:</label>
+  <select id="status">
+    <option>Inicial</option>
+    <option>Em andamento</option>
+    <option>Concluída</option>
+  </select>
+  <label>Progresso (%):</label>
+  <input type="number" id="progresso" min="0" max="100" value="0" required>
+  <button type="submit">Cadastrar</button>
+</form>
 
-  <h2>Cadastrar Nova Obra</h2>
-  <form id="form-obra">
-    <label for="nome">Nome da Obra:</label>
-    <input type="text" id="nome" required />
+<h2>Obras Cadastradas</h2>
+<div id="lista-obras"></div>
 
-    <label for="localizacao">Localização:</label>
-    <input type="text" id="localizacao" required />
+<script>
+const API_URL = "http://localhost:3000";
+let obras = [];
 
-    <label for="orcamento">Orçamento (R$):</label>
-    <input type="number" id="orcamento" step="0.01" min="0" required />
+// ====================== FUNÇÕES ======================
 
-    <label for="responsavel">Responsável:</label>
-    <input type="text" id="responsavel" placeholder="Opcional" />
+// Carregar obras
+async function carregarObras() {
+  const res = await fetch(`${API_URL}/obras`);
+  obras = await res.json();
+  exibirObras();
+}
 
-    <label for="status">Status da Obra:</label>
-    <select id="status">
-      <option value="Inicial">Inicial</option>
-      <option value="Em andamento">Em andamento</option>
-      <option value="Concluída">Concluída</option>
-    </select>
+// Exibir obras
+function exibirObras() {
+  const lista = document.getElementById("lista-obras");
+  lista.innerHTML = "";
+  if (obras.length === 0) {
+    lista.innerHTML = "<p>Nenhuma obra cadastrada.</p>";
+    return;
+  }
 
-    <label for="progresso">Progresso (%):</label>
-    <input type="number" id="progresso" min="0" max="100" value="0" required />
+  obras.forEach(obra => {
+    const div = document.createElement("div");
+    div.className = "obra";
+    div.innerHTML = `
+      <h3>${obra.nome}</h3>
+      <p><strong>Localização:</strong> ${obra.localizacao}</p>
+      <p><strong>Responsável:</strong> ${obra.responsavel || "Não informado"}</p>
+      <p><strong>Status:</strong> ${obra.status}</p>
+      <p><strong>Progresso:</strong> ${obra.progresso}%</p>
+      <div class="barra"><div class="progresso" style="width:${obra.progresso}%"></div></div>
+      <button class="btn-editar" onclick="editarObra(${obra.id})">Editar</button>
+      <button class="btn-excluir" onclick="excluirObra(${obra.id})">Excluir</button>
+      <h4>Etapas</h4>
+      <div id="etapas-${obra.id}"></div>
+      <button onclick="adicionarEtapa(${obra.id})">Adicionar Etapa</button>
+    `;
+    lista.appendChild(div);
+    exibirEtapas(obra);
+  });
+}
 
-    <button type="submit">Cadastrar</button>
-  </form>
+// ====================== OBRAS ======================
 
-  <h2>Obras Cadastradas</h2>
-  <div id="lista-obras"></div>
+document.getElementById("form-obra").addEventListener("submit", async e => {
+  e.preventDefault();
+  const novaObra = {
+    nome: document.getElementById("nome").value,
+    localizacao: document.getElementById("localizacao").value,
+    responsavel: document.getElementById("responsavel").value,
+    status: document.getElementById("status").value,
+    progresso: parseInt(document.getElementById("progresso").value)
+  };
+  const res = await fetch(`${API_URL}/obras`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(novaObra)
+  });
+  const obraCriada = await res.json();
+  obras.push(obraCriada);
+  exibirObras();
+  e.target.reset();
+});
 
-  <script>
-    const API_URL = "http://localhost:3000";
-    const form = document.getElementById("form-obra");
-    const listaObras = document.getElementById("lista-obras");
-    const mensagemDiv = document.getElementById("mensagem");
+async function excluirObra(id) {
+  if (!confirm("Tem certeza que deseja excluir esta obra?")) return;
+  await fetch(`${API_URL}/obras/${id}`, { method: "DELETE" });
+  obras = obras.filter(o => o.id !== id);
+  exibirObras();
+}
 
-    let obras = [];
+async function editarObra(id) {
+  const obra = obras.find(o => o.id === id);
+  if (!obra) return;
 
-    function mostrarMensagem(texto) {
-      mensagemDiv.textContent = texto;
-      mensagemDiv.style.display = "block";
-      setTimeout(() => {
-        mensagemDiv.style.display = "none";
-      }, 2500);
-    }
+  const nome = prompt("Nome:", obra.nome) || obra.nome;
+  const localizacao = prompt("Localização:", obra.localizacao) || obra.localizacao;
+  const responsavel = prompt("Responsável:", obra.responsavel || "") || obra.responsavel;
+  const status = prompt("Status:", obra.status) || obra.status;
+  const progresso = parseInt(prompt("Progresso (0-100):", obra.progresso)) || obra.progresso;
 
-    function statusClasse(status) {
-      if (status === "Inicial") return "inicial";
-      if (status === "Em andamento") return "andamento";
-      if (status === "Concluída") return "concluida";
-      return "";
-    }
+  const res = await fetch(`${API_URL}/obras/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({nome, localizacao, responsavel, status, progresso})
+  });
+  const obraAtualizada = await res.json();
+  const index = obras.findIndex(o => o.id === id);
+  obras[index] = obraAtualizada;
+  exibirObras();
+}
 
-    async function carregarObras() {
-      try {
-        const res = await fetch(`${API_URL}/obras`);
-        if (!res.ok) throw new Error("Erro ao carregar obras");
-        obras = await res.json();
-        exibirObras();
-      } catch (error) {
-        alert(error.message);
-      }
-    }
+// ====================== ETAPAS ======================
 
-    function exibirObras() {
-      listaObras.innerHTML = "";
+function exibirEtapas(obra) {
+  const div = document.getElementById(`etapas-${obra.id}`);
+  div.innerHTML = "";
+  obra.etapas.forEach(etapa => {
+    const eDiv = document.createElement("div");
+    eDiv.className = "etapa";
+    eDiv.innerHTML = `
+      <strong>${etapa.nome}</strong> (Status: ${etapa.status}, Prazo: ${etapa.prazo || "-"}) 
+      <button onclick="editarEtapa(${obra.id},${etapa.id})">Editar</button>
+      <button onclick="excluirEtapa(${obra.id},${etapa.id})">Excluir</button>
+      <div id="materiais-${obra.id}-${etapa.id}"></div>
+      <button onclick="adicionarMaterial(${obra.id},${etapa.id})">Adicionar Material</button>
+    `;
+    div.appendChild(eDiv);
+    exibirMateriais(obra, etapa);
+  });
+}
 
-      if (obras.length === 0) {
-        listaObras.innerHTML = "<p>Nenhuma obra cadastrada.</p>";
-        return;
-      }
+async function adicionarEtapa(obraId) {
+  const nome = prompt("Nome da etapa:");
+  if (!nome) return;
+  const status = prompt("Status da etapa: Inicial, Em andamento, Concluída") || "Inicial";
+  const prazo = prompt("Prazo (opcional):") || null;
 
-      obras.forEach(obra => {
-        const div = document.createElement("div");
-        div.className = `obra ${statusClasse(obra.status)}`;
+  const res = await fetch(`${API_URL}/obras/${obraId}/etapas`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({nome,status,prazo})
+  });
+  const etapa = await res.json();
+  const obra = obras.find(o => o.id === obraId);
+  obra.etapas.push(etapa);
+  exibirEtapas(obra);
+}
 
-        div.innerHTML = `
-        <h3>${obra.nome}</h3>
-        <p><strong>Localização:</strong> ${obra.localizacao}</p>
-        <p><strong>Orçamento:</strong> R$ ${parseFloat(obra.orcamento).toFixed(2)}</p>
-        <p><strong>Responsável:</strong> ${obra.responsavel || "Não informado"}</p>
-        <p><strong>Status:</strong> ${obra.status || "Inicial"}</p>
-        <p><strong>Progresso:</strong> ${obra.progresso}%</p>
-        <div class="barra"><div class="progresso ${statusClasse(obra.status)}" style="width: ${obra.progresso}%;"></div></div>
-        <button class="btn-editar" onclick="editarObra(${obra.id})">Editar</button>
-        <button class="btn-excluir" onclick="excluirObra(${obra.id})">Excluir</button>
-        `;
+async function excluirEtapa(obraId, etapaId) {
+  if (!confirm("Excluir etapa e todos os materiais?")) return;
+  await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, { method: "DELETE" });
+  const obra = obras.find(o => o.id === obraId);
+  obra.etapas = obra.etapas.filter(e => e.id !== etapaId);
+  exibirEtapas(obra);
+}
 
-        listaObras.appendChild(div);
-      });
-    }
+async function editarEtapa(obraId, etapaId) {
+  const obra = obras.find(o => o.id === obraId);
+  const etapa = obra.etapas.find(e => e.id === etapaId);
+  const nome = prompt("Nome da etapa:", etapa.nome) || etapa.nome;
+  const status = prompt("Status:", etapa.status) || etapa.status;
+  const prazo = prompt("Prazo:", etapa.prazo || "") || etapa.prazo;
 
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
+  const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({nome,status,prazo})
+  });
+  const etapaAtualizada = await res.json();
+  const index = obra.etapas.findIndex(e => e.id === etapaId);
+  obra.etapas[index] = etapaAtualizada;
+  exibirEtapas(obra);
+}
 
-      const novaObra = {
-        nome: form.nome.value.trim(),
-        localizacao: form.localizacao.value.trim(),
-        orcamento: parseFloat(form.orcamento.value),
-        responsavel: form.responsavel.value.trim() || undefined,
-        status: form.status.value,
-        progresso: parseInt(form.progresso.value) || 0,
-      };
+// ====================== MATERIAIS ======================
 
-      if (!novaObra.nome || !novaObra.localizacao || isNaN(novaObra.orcamento)) {
-        alert("Preencha os campos obrigatórios corretamente.");
-        return;
-      }
+function exibirMateriais(obra, etapa) {
+  const div = document.getElementById(`materiais-${obra.id}-${etapa.id}`);
+  div.innerHTML = "";
+  etapa.materiais.forEach(mat => {
+    const mDiv = document.createElement("div");
+    mDiv.className = "material";
+    mDiv.innerHTML = `
+      ${mat.nome} - Qtd: ${mat.quantidade} - Custo unit: R$${mat.custoUnit.toFixed(2)}
+      <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>
+    `;
+    div.appendChild(mDiv);
+  });
+}
 
-      try {
-        const res = await fetch(`${API_URL}/obras`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(novaObra),
-        });
+async function adicionarMaterial(obraId, etapaId) {
+  const nome = prompt("Nome do material:");
+  if (!nome) return;
+  const quantidade = parseFloat(prompt("Quantidade:")) || 0;
+  const custoUnit = parseFloat(prompt("Custo unitário:")) || 0;
 
-        if (!res.ok) {
-          const erro = await res.json();
-          throw new Error(erro.mensagem || "Erro ao cadastrar obra.");
-        }
+  const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({nome,quantidade,custoUnit})
+  });
+  const mat = await res.json();
+  const obra = obras.find(o => o.id === obraId);
+  const etapa = obra.etapas.find(e => e.id === etapaId);
+  etapa.materiais.push(mat);
+  exibirMateriais(obra, etapa);
+}
 
-        const obraCriada = await res.json();
-        obras.push(obraCriada);
-        exibirObras();
-        form.reset();
-        mostrarMensagem("Obra cadastrada com sucesso!");
-      } catch (error) {
-        alert(error.message);
-      }
-    });
+async function excluirMaterial(obraId, etapaId, materialId) {
+  if (!confirm("Excluir material?")) return;
+  await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais/${materialId}`, { method: "DELETE" });
+  const obra = obras.find(o => o.id === obraId);
+  const etapa = obra.etapas.find(e => e.id === etapaId);
+  etapa.materiais = etapa.materiais.filter(m => m.id !== materialId);
+  exibirMateriais(obra, etapa);
+}
 
-    async function excluirObra(id) {
-      if (!confirm("Tem certeza que deseja excluir esta obra?")) return;
-      try {
-        const res = await fetch(`${API_URL}/obras/${id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error(`Erro ao excluir obra: ${res.status}`);
-        obras = obras.filter(o => o.id !== id);
-        exibirObras();
-        mostrarMensagem("Obra excluída com sucesso!");
-      } catch (error) {
-        alert(error.message);
-      }
-    }
+// ====================== INICIALIZAÇÃO ======================
+carregarObras();
+</script>
 
-    async function editarObra(id) {
-      const obra = obras.find(o => o.id === id);
-      if (!obra) {
-        alert("Obra não encontrada.");
-        return;
-      }
-
-      const nome = prompt("Nome da Obra:", obra.nome);
-      if (!nome) return;
-      const localizacao = prompt("Localização:", obra.localizacao);
-      if (!localizacao) return;
-      const orcamento = parseFloat(prompt("Orçamento:", obra.orcamento));
-      if (isNaN(orcamento)) return;
-      const responsavel = prompt("Responsável (opcional):", obra.responsavel || "");
-      const status = prompt("Status (Inicial, Em andamento, Concluída):", obra.status || "Inicial");
-      const progresso = parseInt(prompt("Progresso (0-100):", obra.progresso));
-      if (isNaN(progresso) || progresso < 0 || progresso > 100) return;
-
-      try {
-        const res = await fetch(`${API_URL}/obras/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nome, localizacao, orcamento, responsavel, status, progresso }),
-        });
-
-        if (!res.ok) {
-          const erro = await res.json();
-          throw new Error(erro.mensagem || "Erro ao editar obra.");
-        }
-
-        const obraAtualizada = await res.json();
-        const index = obras.findIndex(o => o.id === id);
-        if (index > -1) obras[index] = obraAtualizada;
-        exibirObras();
-        mostrarMensagem("Obra editada com sucesso!");
-      } catch (error) {
-        alert(error.message);
-      }
-    }
-
-    carregarObras();
-  </script>
 </body>
-
 </html>
