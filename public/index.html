@@ -1,57 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de Obras</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-    }
-    h1, h2 {
-      color: #333;
-    }
-    form, .obra {
-      background: #fff;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .btn-editar { background: #2980b9; color: white; }
-    .btn-excluir { background: #e74c3c; color: white; margin-left: 5px; }
-    .btn-editar:hover { background: #1f6391; }
-    .btn-excluir:hover { background: #c0392b; }
-    .barra { background: #ddd; width: 100%; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 5px; }
-    .progresso { background: #4caf50; height: 100%; width: 0%; transition: width 0.3s ease; }
-    .etapa, .material { background: #f0f0f0; padding: 8px; margin-top: 8px; border-radius: 4px; }
-    .material { margin-left: 15px; }
-  </style>
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
+<body>
 <h1>Gerenciador de Obras</h1>
 
 <h2>Cadastrar Nova Obra</h2>
@@ -70,6 +27,8 @@
   </select>
   <label>Progresso (%):</label>
   <input type="number" id="progresso" min="0" max="100" value="0" required>
+  <label>Orçamento (R$):</label>
+  <input type="number" id="orcamento" min="0" value="0">
   <button type="submit">Cadastrar</button>
 </form>
 
@@ -80,20 +39,63 @@
 const API_URL = "http://localhost:3000";
 let obras = [];
 
-// ====================== FUNÇÕES ======================
+// ====================== CACHE LOCAL (localStorage) ======================
+const CACHE_KEY = 'obrasCacheV2';
 
-// Carregar obras
-async function carregarObras() {
-  const res = await fetch(`${API_URL}/obras`);
-  obras = await res.json();
+function salvarCache() {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(obras)); } catch (e) { /* ignore */ }
+}
+
+function carregarCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) { return []; }
+}
+
+// ====================== CALCULO DE PROGRESSO ======================
+function calcularProgressoGeral(obra) {
+  if (!obra.etapas || obra.etapas.length === 0) return Number(obra.progresso || 0);
+  let total = 0;
+  obra.etapas.forEach(e => {
+    let p = 0;
+    if (e.status.toLowerCase() === "concluída") p = 100;
+    else if (e.status.toLowerCase() === "em andamento") p = 50;
+    total += p;
+  });
+  return Math.round(total / obra.etapas.length);
+}
+
+// Renderiza imediatamente com cache (se existir) para UX mais rápida
+const cacheInicial = carregarCache();
+if (cacheInicial.length) {
+  obras = cacheInicial;
   exibirObras();
 }
 
-// Exibir obras
+// ====================== REDE (API) ======================
+async function carregarObras() {
+  try {
+    const res = await fetch(`${API_URL}/obras`);
+    if (!res.ok) throw new Error('Falha ao carregar obras');
+    obras = await res.json();
+    exibirObras();
+    salvarCache();
+  } catch (err) {
+    console.warn('Usando cache por falha na API:', err.message);
+    if (!cacheInicial.length) {
+      document.getElementById('lista-obras').innerHTML = '<p>Não foi possível carregar da API e não há dados em cache.</p>';
+    }
+  }
+}
+
+// ====================== UI ======================
 function exibirObras() {
   const lista = document.getElementById("lista-obras");
   lista.innerHTML = "";
-  if (obras.length === 0) {
+  if (!obras || obras.length === 0) {
     lista.innerHTML = "<p>Nenhuma obra cadastrada.</p>";
     return;
   }
@@ -101,26 +103,34 @@ function exibirObras() {
   obras.forEach(obra => {
     const div = document.createElement("div");
     div.className = "obra";
+
+    const progressoSafe = calcularProgressoGeral(obra);
+
     div.innerHTML = `
       <h3>${obra.nome}</h3>
       <p><strong>Localização:</strong> ${obra.localizacao}</p>
       <p><strong>Responsável:</strong> ${obra.responsavel || "Não informado"}</p>
       <p><strong>Status:</strong> ${obra.status}</p>
-      <p><strong>Progresso:</strong> ${obra.progresso}%</p>
-      <div class="barra"><div class="progresso" style="width:${obra.progresso}%"></div></div>
+      <p><strong>Orçamento:</strong> ${(obra.orcamento ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+      <div class="barra">
+        <div class="progresso" style="width:${progressoSafe}%"><span>${progressoSafe}%</span></div>
+      </div>
+      <p class="meta-info">Progresso geral da obra</p>
+
       <button class="btn-editar" onclick="editarObra(${obra.id})">Editar</button>
       <button class="btn-excluir" onclick="excluirObra(${obra.id})">Excluir</button>
+
       <h4>Etapas</h4>
       <div id="etapas-${obra.id}"></div>
       <button onclick="adicionarEtapa(${obra.id})">Adicionar Etapa</button>
     `;
+
     lista.appendChild(div);
     exibirEtapas(obra);
   });
 }
 
 // ====================== OBRAS ======================
-
 document.getElementById("form-obra").addEventListener("submit", async e => {
   e.preventDefault();
   const novaObra = {
@@ -128,53 +138,74 @@ document.getElementById("form-obra").addEventListener("submit", async e => {
     localizacao: document.getElementById("localizacao").value,
     responsavel: document.getElementById("responsavel").value,
     status: document.getElementById("status").value,
-    progresso: parseInt(document.getElementById("progresso").value)
+    progresso: parseInt(document.getElementById("progresso").value),
+    orcamento: parseFloat(document.getElementById("orcamento").value) || 0
   };
-  const res = await fetch(`${API_URL}/obras`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(novaObra)
-  });
-  const obraCriada = await res.json();
-  obras.push(obraCriada);
-  exibirObras();
-  e.target.reset();
+  try {
+    const res = await fetch(`${API_URL}/obras`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(novaObra)
+    });
+    if (!res.ok) throw new Error('Falha ao cadastrar');
+    const obraCriada = await res.json();
+    obras.push(obraCriada);
+    exibirObras();
+    salvarCache();
+    e.target.reset();
+  } catch (err) {
+    alert('Erro ao cadastrar: ' + err.message);
+  }
 });
 
 async function excluirObra(id) {
   if (!confirm("Tem certeza que deseja excluir esta obra?")) return;
-  await fetch(`${API_URL}/obras/${id}`, { method: "DELETE" });
-  obras = obras.filter(o => o.id !== id);
-  exibirObras();
+  try {
+    await fetch(`${API_URL}/obras/${id}`, { method: "DELETE" });
+    obras = obras.filter(o => o.id !== id);
+    exibirObras();
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao excluir: ' + err.message);
+  }
 }
 
 async function editarObra(id) {
   const obra = obras.find(o => o.id === id);
   if (!obra) return;
 
-  const nome = prompt("Nome:", obra.nome) || obra.nome;
-  const localizacao = prompt("Localização:", obra.localizacao) || obra.localizacao;
-  const responsavel = prompt("Responsável:", obra.responsavel || "") || obra.responsavel;
-  const status = prompt("Status:", obra.status) || obra.status;
-  const progresso = parseInt(prompt("Progresso (0-100):", obra.progresso)) || obra.progresso;
+  const nome = prompt("Nome:", obra.nome) ?? obra.nome;
+  const localizacao = prompt("Localização:", obra.localizacao) ?? obra.localizacao;
+  const responsavel = prompt("Responsável:", obra.responsavel || "") ?? obra.responsavel;
+  const status = prompt("Status:", obra.status) ?? obra.status;
+  const progressoInput = prompt("Progresso (0-100):", obra.progresso);
+  const progresso = progressoInput === null ? obra.progresso : Math.max(0, Math.min(100, parseInt(progressoInput) || 0));
+  const orcamentoInput = prompt("Orçamento (R$):", obra.orcamento ?? 0);
+  const orcamento = orcamentoInput === null ? obra.orcamento : (parseFloat(orcamentoInput) || 0);
 
-  const res = await fetch(`${API_URL}/obras/${id}`, {
-    method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({nome, localizacao, responsavel, status, progresso})
-  });
-  const obraAtualizada = await res.json();
-  const index = obras.findIndex(o => o.id === id);
-  obras[index] = obraAtualizada;
-  exibirObras();
+  try {
+    const res = await fetch(`${API_URL}/obras/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, localizacao, responsavel, status, progresso, orcamento })
+    });
+    if (!res.ok) throw new Error('Falha ao atualizar');
+    const obraAtualizada = await res.json();
+    const index = obras.findIndex(o => o.id === id);
+    obras[index] = obraAtualizada;
+    exibirObras();
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao atualizar: ' + err.message);
+  }
 }
 
 // ====================== ETAPAS ======================
-
 function exibirEtapas(obra) {
   const div = document.getElementById(`etapas-${obra.id}`);
+  if (!div) return;
   div.innerHTML = "";
-  obra.etapas.forEach(etapa => {
+  (obra.etapas || []).forEach(etapa => {
     const eDiv = document.createElement("div");
     eDiv.className = "etapa";
     eDiv.innerHTML = `
@@ -195,53 +226,70 @@ async function adicionarEtapa(obraId) {
   const status = prompt("Status da etapa: Inicial, Em andamento, Concluída") || "Inicial";
   const prazo = prompt("Prazo (opcional):") || null;
 
-  const res = await fetch(`${API_URL}/obras/${obraId}/etapas`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({nome,status,prazo})
-  });
-  const etapa = await res.json();
-  const obra = obras.find(o => o.id === obraId);
-  obra.etapas.push(etapa);
-  exibirEtapas(obra);
+  try {
+    const res = await fetch(`${API_URL}/obras/${obraId}/etapas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, status, prazo })
+    });
+    if (!res.ok) throw new Error('Falha ao adicionar etapa');
+    const etapa = await res.json();
+    const obra = obras.find(o => o.id === obraId);
+    obra.etapas.push(etapa);
+    exibirEtapas(obra);
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao adicionar etapa: ' + err.message);
+  }
 }
 
 async function excluirEtapa(obraId, etapaId) {
   if (!confirm("Excluir etapa e todos os materiais?")) return;
-  await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, { method: "DELETE" });
-  const obra = obras.find(o => o.id === obraId);
-  obra.etapas = obra.etapas.filter(e => e.id !== etapaId);
-  exibirEtapas(obra);
+  try {
+    await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, { method: "DELETE" });
+    const obra = obras.find(o => o.id === obraId);
+    obra.etapas = obra.etapas.filter(e => e.id !== etapaId);
+    exibirEtapas(obra);
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao excluir etapa: ' + err.message);
+  }
 }
 
 async function editarEtapa(obraId, etapaId) {
   const obra = obras.find(o => o.id === obraId);
   const etapa = obra.etapas.find(e => e.id === etapaId);
-  const nome = prompt("Nome da etapa:", etapa.nome) || etapa.nome;
-  const status = prompt("Status:", etapa.status) || etapa.status;
-  const prazo = prompt("Prazo:", etapa.prazo || "") || etapa.prazo;
+  const nome = prompt("Nome da etapa:", etapa.nome) ?? etapa.nome;
+  const status = prompt("Status:", etapa.status) ?? etapa.status;
+  const prazo = prompt("Prazo:", etapa.prazo || "") ?? etapa.prazo;
 
-  const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, {
-    method: "PUT",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({nome,status,prazo})
-  });
-  const etapaAtualizada = await res.json();
-  const index = obra.etapas.findIndex(e => e.id === etapaId);
-  obra.etapas[index] = etapaAtualizada;
-  exibirEtapas(obra);
+  try {
+    const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, status, prazo })
+    });
+    if (!res.ok) throw new Error('Falha ao atualizar etapa');
+    const etapaAtualizada = await res.json();
+    const index = obra.etapas.findIndex(e => e.id === etapaId);
+    obra.etapas[index] = etapaAtualizada;
+    exibirEtapas(obra);
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao atualizar etapa: ' + err.message);
+  }
 }
 
 // ====================== MATERIAIS ======================
-
 function exibirMateriais(obra, etapa) {
   const div = document.getElementById(`materiais-${obra.id}-${etapa.id}`);
+  if (!div) return;
   div.innerHTML = "";
-  etapa.materiais.forEach(mat => {
+  (etapa.materiais || []).forEach(mat => {
     const mDiv = document.createElement("div");
     mDiv.className = "material";
     mDiv.innerHTML = `
-      ${mat.nome} - Qtd: ${mat.quantidade} - Custo unit: R$${mat.custoUnit.toFixed(2)}
+      ${mat.nome} - Qtd: ${mat.quantidade} - Unidade de custo: ${(mat.custoUnit ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
       <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>
     `;
     div.appendChild(mDiv);
@@ -254,25 +302,36 @@ async function adicionarMaterial(obraId, etapaId) {
   const quantidade = parseFloat(prompt("Quantidade:")) || 0;
   const custoUnit = parseFloat(prompt("Custo unitário:")) || 0;
 
-  const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({nome,quantidade,custoUnit})
-  });
-  const mat = await res.json();
-  const obra = obras.find(o => o.id === obraId);
-  const etapa = obra.etapas.find(e => e.id === etapaId);
-  etapa.materiais.push(mat);
-  exibirMateriais(obra, etapa);
+  try {
+    const res = await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, quantidade, custoUnit })
+    });
+    if (!res.ok) throw new Error('Falha ao adicionar material');
+    const mat = await res.json();
+    const obra = obras.find(o => o.id === obraId);
+    const etapa = obra.etapas.find(e => e.id === etapaId);
+    etapa.materiais.push(mat);
+    exibirMateriais(obra, etapa);
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao adicionar material: ' + err.message);
+  }
 }
 
 async function excluirMaterial(obraId, etapaId, materialId) {
   if (!confirm("Excluir material?")) return;
-  await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais/${materialId}`, { method: "DELETE" });
-  const obra = obras.find(o => o.id === obraId);
-  const etapa = obra.etapas.find(e => e.id === etapaId);
-  etapa.materiais = etapa.materiais.filter(m => m.id !== materialId);
-  exibirMateriais(obra, etapa);
+  try {
+    await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais/${materialId}`, { method: "DELETE" });
+    const obra = obras.find(o => o.id === obraId);
+    const etapa = obra.etapas.find(e => e.id === etapaId);
+    etapa.materiais = etapa.materiais.filter(m => m.id !== materialId);
+    exibirMateriais(obra, etapa);
+    salvarCache();
+  } catch (err) {
+    alert('Erro ao excluir material: ' + err.message);
+  }
 }
 
 // ====================== INICIALIZAÇÃO ======================
@@ -280,4 +339,5 @@ carregarObras();
 </script>
 
 </body>
+
 </html>
