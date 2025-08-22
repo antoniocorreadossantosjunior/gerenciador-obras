@@ -1,109 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerenciador de Obras</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
-    color: #333;
-    margin: 20px;
-    transition: background 0.3s, color 0.3s;
-  }
-
-  body.dark {
-    background: #1e1e1e;
-    color: #eee;
-  }
-
-  h1, h2 {
-    text-align: center;
-  }
-
-  form {
-    max-width: 500px;
-    margin: 10px auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  input, select, button {
-    padding: 6px;
-    font-size: 1em;
-  }
-
-  button {
-    cursor: pointer;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    margin-top: 4px;
-  }
-
-  button:hover { background-color: #0056b3; }
-
-  .obra, .etapa, .material {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 8px;
-    margin: 8px 0;
-  }
-
-  body.dark .obra, body.dark .etapa, body.dark .material {
-    border-color: #444;
-  }
-
-  .barra {
-    width: 100%;
-    height: 20px;
-    background: #ddd;
-    border-radius: 10px;
-    margin: 4px 0;
-    overflow: hidden;
-  }
-
-  .progresso {
-    height: 100%;
-    background: #4caf50;
-    text-align: center;
-    color: #fff;
-    line-height: 20px;
-    font-weight: bold;
-  }
-
-  body.dark .progresso {
-    color: #fff;
-  }
-
-  .btn-editar, .btn-excluir {
-    margin-right: 4px;
-    background-color: #28a745;
-  }
-
-  .btn-excluir { background-color: #dc3545; }
-
-  #toggle-theme {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    padding: 6px 12px;
-    border-radius: 5px;
-    border: none;
-    background-color: #6c757d;
-    color: white;
-    cursor: pointer;
-  }
-
-  #toggle-theme:hover { background-color: #5a6268; }
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 <h1>Gerenciador de Obras</h1>
 <button id="toggle-theme">🌙 Tema</button>
@@ -132,118 +34,158 @@
 <h2>Obras Cadastradas</h2>
 <div id="lista-obras"></div>
 
+<!-- MODAL -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="fecharModal()">&times;</span>
+    <h3 id="modal-title"></h3>
+    <form id="modal-form">
+      <div id="modal-fields"></div>
+      <button type="submit">Salvar</button>
+    </form>
+  </div>
+</div>
+
 <script>
 const API_URL = "http://localhost:3000";
 let obras = [];
 const CACHE_KEY = 'obrasCacheV2';
 const THEME_KEY = 'theme';
 
-// ====================== TEMA ======================
+// ======== TEMA ========
 const body = document.body;
 const toggleThemeBtn = document.getElementById('toggle-theme');
 const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
 body.classList.add(savedTheme);
-toggleThemeBtn.textContent = savedTheme === 'dark' ? '☀️ Tema' : '🌙 Tema';
+toggleThemeBtn.textContent = savedTheme==='dark'?'☀️ Tema':'🌙 Tema';
 
-toggleThemeBtn.addEventListener('click', () => {
+toggleThemeBtn.addEventListener('click',()=>{
   body.classList.toggle('dark');
   body.classList.toggle('light');
-  const theme = body.classList.contains('dark') ? 'dark' : 'light';
-  localStorage.setItem(THEME_KEY, theme);
-  toggleThemeBtn.textContent = theme === 'dark' ? '☀️ Tema' : '🌙 Tema';
+  const theme = body.classList.contains('dark')?'dark':'light';
+  localStorage.setItem(THEME_KEY,theme);
+  toggleThemeBtn.textContent=theme==='dark'?'☀️ Tema':'🌙 Tema';
 });
 
-// ====================== CACHE ======================
-function salvarCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(obras)); } catch(e){} }
-function carregarCache() { try { const raw = localStorage.getItem(CACHE_KEY); return raw ? JSON.parse(raw) : []; } catch(e){ return []; } }
+// ======== MODAL ========
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modal-title");
+const modalFields = document.getElementById("modal-fields");
+const modalForm = document.getElementById("modal-form");
 
-// ====================== UTIL ======================
-function gerarId() { return Date.now() + Math.floor(Math.random()*1000); }
+function abrirModal(titulo, campos, onSubmit){
+  modalTitle.textContent = titulo;
+  modalFields.innerHTML = campos;
+  modal.style.display = "flex";
 
-function calcularProgressoGeral(obra) {
-  if(!obra.etapas || obra.etapas.length===0) return Number(obra.progresso||0);
-  let total=0; obra.etapas.forEach(e=>{ let p=0; if(e.status.toLowerCase()==='concluída') p=100; else if(e.status.toLowerCase()==='em andamento') p=50; total+=p; }); 
+  modalForm.onsubmit = (e)=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(modalForm));
+    onSubmit(data);
+    fecharModal();
+  };
+}
+function fecharModal(){ modal.style.display="none"; }
+
+// ======== CACHE ========
+function salvarCache(){ try{ localStorage.setItem(CACHE_KEY,JSON.stringify(obras)); } catch(e){} }
+function carregarCache(){ try{ const raw = localStorage.getItem(CACHE_KEY); return raw?JSON.parse(raw):[]; }catch(e){return [];} }
+
+// ======== UTIL ========
+function gerarId(){ return Date.now() + Math.floor(Math.random()*1000); }
+function calcularProgressoGeral(obra){
+  if(!obra.etapas || !obra.etapas.length) return Number(obra.progresso||0);
+  let total=0;
+  obra.etapas.forEach(e=>{
+    const status = (e.status||"").toLowerCase();
+    if(status==='concluída') total+=100;
+    else if(status==='em andamento') total+=50;
+  });
   return Math.round(total/obra.etapas.length);
 }
-
 function calcularOrcamentoAutomatico(obra){
-  if(!obra.etapas || obra.etapas.length===0) return obra.orcamento||0;
-  let total=0; obra.etapas.forEach(etapa => { (etapa.materiais||[]).forEach(mat => { total += (mat.quantidade||0)*(mat.custoUnit||0); }); }); 
+  if(!obra.etapas || !obra.etapas.length) return obra.orcamento||0;
+  let total=0;
+  obra.etapas.forEach(etapa=>{
+    (etapa.materiais||[]).forEach(mat=>{
+      total+=(mat.quantidade||0)*(mat.custoUnit||0);
+    });
+  });
   return total;
 }
 
-// ====================== RENDER ======================
-function exibirMateriais(obra, etapa){
+// ======== RENDER ========
+function exibirMateriais(obra,etapa){
   const div = document.getElementById(`materiais-${obra.id}-${etapa.id}`);
-  if(!div) return; div.innerHTML="";
-  (etapa.materiais||[]).forEach(mat => {
-    const mDiv = document.createElement("div");
+  if(!div) return;
+  div.innerHTML="";
+  (etapa.materiais||[]).forEach(mat=>{
+    const mDiv=document.createElement("div");
     mDiv.className="material";
-    mDiv.innerHTML=`${mat.nome} - Qtd: ${mat.quantidade} - Custo: ${(mat.custoUnit||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} 
-      <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>`;
+    mDiv.innerHTML=`${mat.nome||"-"} - Qtd: ${mat.quantidade||0} - Custo: ${(mat.custoUnit||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>`;
     div.appendChild(mDiv);
   });
 }
-
 function exibirEtapas(obra){
-  const div = document.getElementById(`etapas-${obra.id}`);
-  if(!div) return; div.innerHTML="";
+  const div=document.getElementById(`etapas-${obra.id}`);
+  if(!div) return;
+  div.innerHTML="";
   (obra.etapas||[]).forEach(etapa=>{
-    const eDiv = document.createElement("div");
+    const eDiv=document.createElement("div");
     eDiv.className="etapa";
-    eDiv.innerHTML = `<strong>${etapa.nome}</strong> (Status: ${etapa.status}, Prazo: ${etapa.prazo||"-"}) 
+    eDiv.innerHTML=`<strong>${etapa.nome||"-"}</strong> (Status: ${etapa.status||"-"}, Prazo: ${etapa.prazo||"-"}) 
       <button onclick="editarEtapa(${obra.id},${etapa.id})">Editar</button>
       <button onclick="excluirEtapa(${obra.id},${etapa.id})">Excluir</button>
       <div id="materiais-${obra.id}-${etapa.id}"></div>
-      <button onclick="adicionarMaterial(${obra.id},${etapa.id})">Adicionar Material</button>`;
+      <button onclick="abrirModalAdicionarMaterial(${obra.id},${etapa.id})">Adicionar Material</button>`;
     div.appendChild(eDiv);
-    exibirMateriais(obra, etapa);
+    exibirMateriais(obra,etapa);
   });
 }
-
 function exibirObras(){
-  const lista = document.getElementById("lista-obras"); lista.innerHTML="";
-  if(!obras||obras.length===0){ lista.innerHTML="<p>Nenhuma obra cadastrada.</p>"; return; }
-
+  const lista=document.getElementById("lista-obras");
+  lista.innerHTML="";
+  if(!obras||!obras.length){ lista.innerHTML="<p>Nenhuma obra cadastrada.</p>"; return; }
   obras.forEach(obra=>{
-    const div=document.createElement("div"); div.className="obra";
-    const progressoSafe = calcularProgressoGeral(obra);
-    const orcamentoSafe = calcularOrcamentoAutomatico(obra);
-    div.innerHTML=`<h3>${obra.nome}</h3>
-      <p><strong>Localização:</strong> ${obra.localizacao}</p>
-      <p><strong>Responsável:</strong> ${obra.responsavel||"Não informado"}</p>
-      <p><strong>Status:</strong> ${obra.status}</p>
+    const div=document.createElement("div");
+    div.className="obra";
+    const progressoSafe=calcularProgressoGeral(obra);
+    const orcamentoSafe=calcularOrcamentoAutomatico(obra);
+    div.innerHTML=`<h3>${obra.nome||"-"}</h3>
+      <p><strong>Localização:</strong> ${obra.localizacao||"-"}</p>
+      <p><strong>Responsável:</strong> ${obra.responsavel||"-"}</p>
+      <p><strong>Status:</strong> ${obra.status||"-"}</p>
       <p><strong>Orçamento:</strong> ${orcamentoSafe.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</p>
       <div class="barra"><div class="progresso" style="width:${progressoSafe}%">${progressoSafe}%</div></div>
       <button class="btn-editar" onclick="editarObra(${obra.id})">Editar</button>
       <button class="btn-excluir" onclick="excluirObra(${obra.id})">Excluir</button>
       <h4>Etapas</h4><div id="etapas-${obra.id}"></div>
-      <button onclick="adicionarEtapa(${obra.id})">Adicionar Etapa</button>`;
+      <button onclick="abrirModalAdicionarEtapa(${obra.id})">Adicionar Etapa</button>`;
     lista.appendChild(div);
     exibirEtapas(obra);
   });
 }
 
-// ====================== CRUD ======================
+// ======== CRUD OBRAS ========
 document.getElementById("form-obra").addEventListener("submit", async e=>{
   e.preventDefault();
-  const novaObra={ id: gerarId(),
-    nome: document.getElementById("nome").value,
-    localizacao: document.getElementById("localizacao").value,
-    responsavel: document.getElementById("responsavel").value,
-    status: document.getElementById("status").value,
-    progresso: parseInt(document.getElementById("progresso").value),
-    orcamento: parseFloat(document.getElementById("orcamento").value)||0,
+  const novaObra={
+    id:gerarId(),
+    nome:document.getElementById("nome").value,
+    localizacao:document.getElementById("localizacao").value,
+    responsavel:document.getElementById("responsavel").value,
+    status:document.getElementById("status").value,
+    progresso:parseInt(document.getElementById("progresso").value),
+    orcamento:parseFloat(document.getElementById("orcamento").value)||0,
     etapas:[]
   };
   try{
-    const res = await fetch(`${API_URL}/obras`,{
-      method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(novaObra)
-    });
-    if(!res.ok) throw new Error('Falha ao cadastrar');
-    const obraCriada = await res.json(); obras.push(obraCriada);
+    const res=await fetch(`${API_URL}/obras`,{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(novaObra)});
+    if(!res.ok) throw new Error("Falha ao cadastrar");
+    const obraCriada=await res.json();
+    obras.push(obraCriada);
     exibirObras(); salvarCache(); e.target.reset();
-  }catch(err){ alert('Erro ao cadastrar: '+err.message);}
+  }catch(err){ alert("Erro ao cadastrar: "+err.message); }
 });
 
 async function excluirObra(id){
@@ -251,95 +193,111 @@ async function excluirObra(id){
   try{
     await fetch(`${API_URL}/obras/${id}`,{method:"DELETE"});
     obras=obras.filter(o=>o.id!==id); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao excluir: '+err.message);}
+  }catch(err){ alert("Erro ao excluir: "+err.message); }
 }
 
 async function editarObra(id){
-  const obra = obras.find(o=>o.id===id); if(!obra) return;
-  const nome = prompt("Nome:",obra.nome)||obra.nome;
-  const localizacao = prompt("Localização:",obra.localizacao)||obra.localizacao;
-  const responsavel = prompt("Responsável:",obra.responsavel||"")||obra.responsavel;
-  const status = prompt("Status:",obra.status)||obra.status;
-  const progressoInput = prompt("Progresso (0-100):",obra.progresso); 
-  const progresso = progressoInput===null?obra.progresso: Math.max(0,Math.min(100,parseInt(progressoInput)||0));
-  const orcamentoInput = prompt("Orçamento (R$):",obra.orcamento||0);
-  const orcamento = orcamentoInput===null?obra.orcamento:parseFloat(orcamentoInput)||0;
-  try{
-    const res = await fetch(`${API_URL}/obras/${id}`,{method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({nome,localizacao,responsavel,status,progresso,orcamento})});
-    if(!res.ok) throw new Error('Falha ao atualizar');
-    const obraAtualizada = await res.json();
-    const index = obras.findIndex(o=>o.id===id); obras[index]=obraAtualizada;
-    exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao atualizar: '+err.message);}
+  const obra=obras.find(o=>o.id===id);
+  if(!obra) return;
+  abrirModal("Editar Obra",`
+    <label>Nome:</label><input type="text" name="nome" value="${obra.nome}" required>
+    <label>Localização:</label><input type="text" name="localizacao" value="${obra.localizacao}" required>
+    <label>Responsável:</label><input type="text" name="responsavel" value="${obra.responsavel||""}">
+    <label>Status:</label>
+    <select name="status">
+      <option ${obra.status==="Inicial"?"selected":""}>Inicial</option>
+      <option ${obra.status==="Em andamento"?"selected":""}>Em andamento</option>
+      <option ${obra.status==="Concluída"?"selected":""}>Concluída</option>
+    </select>
+    <label>Progresso (%):</label><input type="number" name="progresso" min="0" max="100" value="${obra.progresso}">
+    <label>Orçamento (R$):</label><input type="number" name="orcamento" min="0" value="${obra.orcamento}">
+  `, async data=>{
+    try{
+      const res=await fetch(`${API_URL}/obras/${id}`,{method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({...obra, nome:data.nome, localizacao:data.localizacao, responsavel:data.responsavel, status:data.status, progresso:parseInt(data.progresso), orcamento:parseFloat(data.orcamento)})});
+      if(!res.ok) throw new Error("Falha ao atualizar");
+      const obraAtualizada=await res.json();
+      const index=obras.findIndex(o=>o.id===id);
+      obras[index]=obraAtualizada;
+      exibirObras(); salvarCache();
+    }catch(err){ alert("Erro ao atualizar: "+err.message); }
+  });
 }
 
-// ====================== ETAPAS ======================
-async function adicionarEtapa(obraId){
-  const nome = prompt("Nome da etapa:"); if(!nome) return;
-  const status = prompt("Status da etapa: Inicial, Em andamento, Concluída")||"Inicial";
-  const prazo = prompt("Prazo (opcional)")||null;
-  try{
-    const res = await fetch(`${API_URL}/obras/${obraId}/etapas`,{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:gerarId(),nome,status,prazo,materiais:[]})});
-    if(!res.ok) throw new Error('Falha ao adicionar etapa');
-    const etapa = await res.json();
-    const obra = obras.find(o=>o.id===obraId); obra.etapas.push(etapa);
-    exibirEtapas(obra); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao adicionar etapa: '+err.message);}
+// ======== ETAPAS/MATERIAIS ========
+function abrirModalAdicionarEtapa(obraId){
+  const obra=obras.find(o=>o.id===obraId);
+  abrirModal("Adicionar Etapa",`
+    <label>Nome da Etapa:</label><input type="text" name="nome" required>
+    <label>Status:</label>
+    <select name="status">
+      <option value="Inicial">Inicial</option>
+      <option value="Em andamento">Em andamento</option>
+      <option value="Concluída">Concluída</option>
+    </select>
+  `, data=>{
+    obra.etapas.push({id:gerarId(), nome:data.nome, status:data.status, materiais:[]});
+    salvarCache(); exibirObras();
+  });
 }
 
-async function excluirEtapa(obraId,etapaId){
+function abrirModalAdicionarMaterial(obraId, etapaId){
+  const obra=obras.find(o=>o.id===obraId);
+  const etapa=obra.etapas.find(e=>e.id===etapaId);
+  abrirModal("Adicionar Material",`
+    <label>Nome do Material:</label><input type="text" name="nome" required>
+    <label>Quantidade:</label><input type="number" name="quantidade" required>
+    <label>Custo Unitário:</label><input type="number" name="custo" required>
+  `, data=>{
+    etapa.materiais.push({id:gerarId(), nome:data.nome, quantidade:parseFloat(data.quantidade), custoUnit:parseFloat(data.custo)});
+    salvarCache(); exibirObras();
+  });
+}
+
+async function excluirEtapa(obraId, etapaId){
   if(!confirm("Excluir etapa e todos os materiais?")) return;
-  try{ await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`,{method:"DELETE"});
-    const obra=obras.find(o=>o.id===obraId); obra.etapas=obra.etapas.filter(e=>e.id!==etapaId);
-    exibirEtapas(obra); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao excluir etapa: '+err.message);}
+  const obra=obras.find(o=>o.id===obraId);
+  obra.etapas=obra.etapas.filter(e=>e.id!==etapaId);
+  exibirObras(); salvarCache();
+}
+async function editarEtapa(obraId, etapaId){
+  const obra=obras.find(o=>o.id===obraId);
+  const etapa=obra.etapas.find(e=>e.id===etapaId);
+  abrirModal("Editar Etapa",`
+    <label>Nome:</label><input type="text" name="nome" value="${etapa.nome}" required>
+    <label>Status:</label>
+    <select name="status">
+      <option value="Inicial" ${etapa.status==="Inicial"?"selected":""}>Inicial</option>
+      <option value="Em andamento" ${etapa.status==="Em andamento"?"selected":""}>Em andamento</option>
+      <option value="Concluída" ${etapa.status==="Concluída"?"selected":""}>Concluída</option>
+    </select>
+  `, data=>{
+    etapa.nome=data.nome; etapa.status=data.status;
+    salvarCache(); exibirObras();
+  });
 }
 
-async function editarEtapa(obraId,etapaId){
-  const obra=obras.find(o=>o.id===obraId); const etapa=obra.etapas.find(e=>e.id===etapaId);
-  const nome=prompt("Nome da etapa:",etapa.nome)||etapa.nome;
-  const status=prompt("Status:",etapa.status)||etapa.status;
-  const prazo=prompt("Prazo:",etapa.prazo||"")||etapa.prazo;
-  try{ const res=await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({nome,status,prazo})});
-    if(!res.ok) throw new Error('Falha ao atualizar etapa');
-    const etapaAtualizada=await res.json(); const index=obra.etapas.findIndex(e=>e.id===etapaId); obra.etapas[index]=etapaAtualizada;
-    exibirEtapas(obra); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao atualizar etapa: '+err.message);}
-}
-
-// ====================== MATERIAIS ======================
-async function adicionarMaterial(obraId,etapaId){
-  const nome=prompt("Nome do material:"); if(!nome) return;
-  const quantidade=parseFloat(prompt("Quantidade:"))||0;
-  const custoUnit=parseFloat(prompt("Custo unitário:"))||0;
-  try{
-    const res=await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:gerarId(),nome,quantidade,custoUnit})});
-    if(!res.ok) throw new Error('Falha ao adicionar material');
-    const mat=await res.json();
-    const obra=obras.find(o=>o.id===obraId); const etapa=obra.etapas.find(e=>e.id===etapaId); etapa.materiais.push(mat);
-    exibirMateriais(obra,etapa); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao adicionar material: '+err.message);}
-}
-
-async function excluirMaterial(obraId,etapaId,materialId){
+async function excluirMaterial(obraId, etapaId, materialId){
   if(!confirm("Excluir material?")) return;
-  try{ await fetch(`${API_URL}/obras/${obraId}/etapas/${etapaId}/materiais/${materialId}`,{method:"DELETE"});
-    const obra=obras.find(o=>o.id===obraId); const etapa=obra.etapas.find(e=>e.id===etapaId);
-    etapa.materiais=etapa.materiais.filter(m=>m.id!==materialId); exibirMateriais(obra,etapa); exibirObras(); salvarCache();
-  }catch(err){ alert('Erro ao excluir material: '+err.message);}
+  const obra=obras.find(o=>o.id===obraId);
+  const etapa=obra.etapas.find(e=>e.id===etapaId);
+  etapa.materiais=etapa.materiais.filter(m=>m.id!==materialId);
+  exibirObras(); salvarCache();
 }
 
-// ====================== INICIALIZAÇÃO ======================
-const cacheInicial = carregarCache(); if(cacheInicial.length){ obras=cacheInicial; exibirObras(); }
+// ======== INICIALIZAÇÃO ========
+const cacheInicial=carregarCache();
+if(cacheInicial.length){ obras=cacheInicial; exibirObras(); }
 
 async function carregarObras(){
-  try{ const res = await fetch(`${API_URL}/obras`); if(!res.ok) throw new Error('Falha ao carregar obras');
-    obras = await res.json(); exibirObras(); salvarCache();
-  }catch(err){ console.warn('Usando cache por falha na API:',err.message);
-    if(!cacheInicial.length) document.getElementById('lista-obras').innerHTML='<p>Não foi possível carregar da API e não há dados em cache.</p>';
+  try{
+    const res=await fetch(`${API_URL}/obras`);
+    if(!res.ok) throw new Error("Falha ao carregar obras");
+    obras=await res.json(); exibirObras(); salvarCache();
+  }catch(err){
+    console.warn("Usando cache por falha na API:",err.message);
+    if(!cacheInicial.length) document.getElementById("lista-obras").innerHTML='<p>Não foi possível carregar da API e não há dados em cache.</p>';
   }
 }
-
 carregarObras();
 </script>
 
