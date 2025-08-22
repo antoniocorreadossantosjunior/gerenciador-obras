@@ -1,232 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
-  <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css">
+<style>}
+
+/* ======== ESTILO GERAL ======== */
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+h1, h2, h3, h4 {
+  margin-bottom: 10px;
+}
+
+form label {
+  display: block;
+  margin-top: 10px;
+}
+
+input, select, button {
+  padding: 8px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  cursor: pointer;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+}
+
+.obra {
+  background-color: #fff;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.barra {
+  width: 100%;
+  height: 20px;
+  background-color: #ddd;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+.progresso {
+  height: 100%;
+  background-color: #1e88e5;
+  text-align: center;
+  color: #fff;
+  border-radius: 10px;
+  line-height: 20px;
+}
+
+.btn-editar {
+  background-color: #1e88e5;
+  color: #fff;
+  margin-right: 5px;
+}
+
+.btn-excluir {
+  background-color: #e53935;
+  color: #fff;
+}
+
+/* ======== MODAL ======== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  transform: translateY(-50px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.modal.show .modal-content {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.close-btn {
+  float: right;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #888;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+/* ======== TOAST ======== */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #4caf50;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.5s;
+  z-index: 2000;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* ======== RESPONSIVIDADE ======== */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  .obra {
+    padding: 10px;
+  }
+
+  input, select, button {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+  }
+
+  .barra {
+    height: 18px;
+  }
+}
+</style>
 </head>
+
 <body>
-<h1>Gerenciador de Obras</h1>
-<button id="toggle-theme">🌙 Tema</button>
 
-<h2>Cadastrar Nova Obra</h2>
-<form id="form-obra">
-  <label>Nome da Obra:</label>
-  <input type="text" id="nome" required>
-  <label>Localização:</label>
-  <input type="text" id="localizacao" required>
-  <label>Responsável:</label>
-  <input type="text" id="responsavel">
-  <label>Status:</label>
-  <select id="status">
-    <option>Inicial</option>
-    <option>Em andamento</option>
-    <option>Concluída</option>
-  </select>
-  <label>Progresso (%):</label>
-  <input type="number" id="progresso" min="0" max="100" value="0" required>
-  <label>Orçamento (R$):</label>
-  <input type="number" id="orcamento" min="0" value="0">
-  <button type="submit">Cadastrar</button>
-</form>
+  <h1>Gerenciador de Obras</h1>
+  <button id="toggle-theme">🌙 Tema</button>
 
-<h2>Obras Cadastradas</h2>
-<div id="lista-obras"></div>
+  <h2>Cadastrar Nova Obra</h2>
+  <form id="form-obra">
+    <label>Nome da Obra:</label>
+    <input type="text" id="nome" required>
+    <label>Localização:</label>
+    <input type="text" id="localizacao" required>
+    <label>Responsável:</label>
+    <input type="text" id="responsavel">
+    <label>Status:</label>
+    <select id="status">
+      <option>Inicial</option>
+      <option>Em andamento</option>
+      <option>Concluída</option>
+    </select>
+    <label>Progresso (%):</label>
+    <input type="number" id="progresso" min="0" max="100" value="0" required>
+    <label>Orçamento (R$):</label>
+    <input type="number" id="orcamento" min="0" value="0">
+    <button type="submit">Cadastrar</button>
+  </form>
 
-<!-- MODAL -->
-<div id="modal" class="modal">
-  <div class="modal-content">
-    <span class="close-btn" onclick="fecharModal()">&times;</span>
-    <h3 id="modal-title"></h3>
-    <form id="modal-form">
-      <div id="modal-fields"></div>
-      <button type="submit">Salvar</button>
-    </form>
+  <h2>Obras Cadastradas</h2>
+  <button onclick="exportarExcel()">📊 Exportar Excel</button>
+  <button onclick="exportarPDF()">📄 Exportar PDF</button>
+  <div id="lista-obras"></div>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="fecharModal()">&times;</span>
+      <h3 id="modal-title"></h3>
+      <form id="modal-form">
+        <div id="modal-fields"></div>
+        <button type="submit">Salvar</button>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
-const API_URL = "http://localhost:3000";
-let obras = [];
-const CACHE_KEY = 'obrasCacheV2';
-const THEME_KEY = 'theme';
+  <!-- LIBS EXPORTAÇÃO -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-// ======== TEMA ========
-const body = document.body;
-const toggleThemeBtn = document.getElementById('toggle-theme');
-const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
-body.classList.add(savedTheme);
-toggleThemeBtn.textContent = savedTheme==='dark'?'☀️ Tema':'🌙 Tema';
+  <script>
+    const API_URL = "http://localhost:3000";
+    let obras = [];
+    const CACHE_KEY = 'obrasCacheV2';
+    const THEME_KEY = 'theme';
 
-toggleThemeBtn.addEventListener('click',()=>{
-  body.classList.toggle('dark');
-  body.classList.toggle('light');
-  const theme = body.classList.contains('dark')?'dark':'light';
-  localStorage.setItem(THEME_KEY,theme);
-  toggleThemeBtn.textContent=theme==='dark'?'☀️ Tema':'🌙 Tema';
-});
+    // ======== TEMA ========
+    const body = document.body;
+    const toggleThemeBtn = document.getElementById('toggle-theme');
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+    body.classList.add(savedTheme);
+    toggleThemeBtn.textContent = savedTheme === 'dark' ? '☀️ Tema' : '🌙 Tema';
 
-// ======== MODAL ========
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modal-title");
-const modalFields = document.getElementById("modal-fields");
-const modalForm = document.getElementById("modal-form");
-
-function abrirModal(titulo, campos, onSubmit){
-  modalTitle.textContent = titulo;
-  modalFields.innerHTML = campos;
-  modal.style.display = "flex";
-
-  modalForm.onsubmit = (e)=>{
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(modalForm));
-    onSubmit(data);
-    fecharModal();
-  };
-}
-function fecharModal(){ modal.style.display="none"; }
-
-// ======== CACHE ========
-function salvarCache(){ try{ localStorage.setItem(CACHE_KEY,JSON.stringify(obras)); } catch(e){} }
-function carregarCache(){ try{ const raw = localStorage.getItem(CACHE_KEY); return raw?JSON.parse(raw):[]; }catch(e){return [];} }
-
-// ======== UTIL ========
-function gerarId(){ return Date.now() + Math.floor(Math.random()*1000); }
-function calcularProgressoGeral(obra){
-  if(!obra.etapas || !obra.etapas.length) return Number(obra.progresso||0);
-  let total=0;
-  obra.etapas.forEach(e=>{
-    const status = (e.status||"").toLowerCase();
-    if(status==='concluída') total+=100;
-    else if(status==='em andamento') total+=50;
-  });
-  return Math.round(total/obra.etapas.length);
-}
-function calcularOrcamentoAutomatico(obra){
-  if(!obra.etapas || !obra.etapas.length) return obra.orcamento||0;
-  let total=0;
-  obra.etapas.forEach(etapa=>{
-    (etapa.materiais||[]).forEach(mat=>{
-      total+=(mat.quantidade||0)*(mat.custoUnit||0);
+    toggleThemeBtn.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      body.classList.toggle('light');
+      const theme = body.classList.contains('dark') ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, theme);
+      toggleThemeBtn.textContent = theme === 'dark' ? '☀️ Tema' : '🌙 Tema';
     });
-  });
-  return total;
-}
 
-// ======== RENDER ========
-function exibirMateriais(obra,etapa){
-  const div = document.getElementById(`materiais-${obra.id}-${etapa.id}`);
-  if(!div) return;
-  div.innerHTML="";
-  (etapa.materiais||[]).forEach(mat=>{
-    const mDiv=document.createElement("div");
-    mDiv.className="material";
-    mDiv.innerHTML=`${mat.nome||"-"} - Qtd: ${mat.quantidade||0} - Custo: ${(mat.custoUnit||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>`;
-    div.appendChild(mDiv);
-  });
-}
-function exibirEtapas(obra){
-  const div=document.getElementById(`etapas-${obra.id}`);
-  if(!div) return;
-  div.innerHTML="";
-  (obra.etapas||[]).forEach(etapa=>{
-    const eDiv=document.createElement("div");
-    eDiv.className="etapa";
-    eDiv.innerHTML=`<strong>${etapa.nome||"-"}</strong> (Status: ${etapa.status||"-"}, Prazo: ${etapa.prazo||"-"}) 
+    // ======== MODAL ========
+    const modal = document.getElementById("modal");
+    const modalTitle = document.getElementById("modal-title");
+    const modalFields = document.getElementById("modal-fields");
+    const modalForm = document.getElementById("modal-form");
+
+    function abrirModal(titulo, campos, onSubmit) {
+      modalTitle.textContent = titulo;
+      modalFields.innerHTML = campos;
+      modal.style.display = "flex";
+      modal.classList.add("show");
+
+      modalForm.onsubmit = (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(modalForm));
+        onSubmit(data);
+        fecharModal();
+      };
+    }
+
+    function fecharModal() {
+      modal.classList.remove("show");
+      setTimeout(() => modal.style.display = "none", 300);
+    }
+
+    // ======== CACHE ========
+    function salvarCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(obras)); } catch (e) { } }
+    function carregarCache() { try { const raw = localStorage.getItem(CACHE_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }
+
+    // ======== UTIL ========
+    function gerarId() { return Date.now() + Math.floor(Math.random() * 1000); }
+    function calcularProgressoGeral(obra) {
+      if (!obra.etapas || !obra.etapas.length) return Number(obra.progresso || 0);
+      let total = 0;
+      obra.etapas.forEach(e => {
+        const status = (e.status || "").toLowerCase();
+        if (status === 'concluída') total += 100;
+        else if (status === 'em andamento') total += 50;
+      });
+      return Math.round(total / obra.etapas.length);
+    }
+    function calcularOrcamentoAutomatico(obra) {
+      if (!obra.etapas || !obra.etapas.length) return obra.orcamento || 0;
+      let total = 0;
+      obra.etapas.forEach(etapa => {
+        (etapa.materiais || []).forEach(mat => {
+          total += (mat.quantidade || 0) * (mat.custoUnit || 0);
+        });
+      });
+      return total;
+    }
+
+    // ======== RENDER ========
+    function exibirMateriais(obra, etapa) {
+      const div = document.getElementById(`materiais-${obra.id}-${etapa.id}`);
+      if (!div) return;
+      div.innerHTML = "";
+      (etapa.materiais || []).forEach(mat => {
+        const mDiv = document.createElement("div");
+        mDiv.className = "material";
+        mDiv.innerHTML = `${mat.nome || "-"} - Qtd: ${mat.quantidade || 0} - Custo: ${(mat.custoUnit || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <button onclick="excluirMaterial(${obra.id},${etapa.id},${mat.id})">Excluir</button>`;
+        div.appendChild(mDiv);
+      });
+    }
+    function exibirEtapas(obra) {
+      const div = document.getElementById(`etapas-${obra.id}`);
+      if (!div) return;
+      div.innerHTML = "";
+      (obra.etapas || []).forEach(etapa => {
+        const eDiv = document.createElement("div");
+        eDiv.className = "etapa";
+        eDiv.innerHTML = `<strong>${etapa.nome || "-"}</strong> (Status: ${etapa.status || "-"}, Prazo: ${etapa.prazo || "-"}) 
       <button onclick="editarEtapa(${obra.id},${etapa.id})">Editar</button>
       <button onclick="excluirEtapa(${obra.id},${etapa.id})">Excluir</button>
       <div id="materiais-${obra.id}-${etapa.id}"></div>
       <button onclick="abrirModalAdicionarMaterial(${obra.id},${etapa.id})">Adicionar Material</button>`;
-    div.appendChild(eDiv);
-    exibirMateriais(obra,etapa);
-  });
-}
-function exibirObras(){
-  const lista=document.getElementById("lista-obras");
-  lista.innerHTML="";
-  if(!obras||!obras.length){ lista.innerHTML="<p>Nenhuma obra cadastrada.</p>"; return; }
-  obras.forEach(obra=>{
-    const div=document.createElement("div");
-    div.className="obra";
-    const progressoSafe=calcularProgressoGeral(obra);
-    const orcamentoSafe=calcularOrcamentoAutomatico(obra);
-    div.innerHTML=`<h3>${obra.nome||"-"}</h3>
-      <p><strong>Localização:</strong> ${obra.localizacao||"-"}</p>
-      <p><strong>Responsável:</strong> ${obra.responsavel||"-"}</p>
-      <p><strong>Status:</strong> ${obra.status||"-"}</p>
-      <p><strong>Orçamento:</strong> ${orcamentoSafe.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</p>
+        div.appendChild(eDiv);
+        exibirMateriais(obra, etapa);
+      });
+    }
+    function exibirObras() {
+      const lista = document.getElementById("lista-obras");
+      lista.innerHTML = "";
+      if (!obras || !obras.length) { lista.innerHTML = "<p>Nenhuma obra cadastrada.</p>"; return; }
+      obras.forEach(obra => {
+        const div = document.createElement("div");
+        div.className = "obra";
+        const progressoSafe = calcularProgressoGeral(obra);
+        const orcamentoSafe = calcularOrcamentoAutomatico(obra);
+        div.innerHTML = `<h3>${obra.nome || "-"}</h3>
+      <p><strong>Localização:</strong> ${obra.localizacao || "-"}</p>
+      <p><strong>Responsável:</strong> ${obra.responsavel || "-"}</p>
+      <p><strong>Status:</strong> ${obra.status || "-"}</p>
+      <p><strong>Orçamento:</strong> ${orcamentoSafe.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
       <div class="barra"><div class="progresso" style="width:${progressoSafe}%">${progressoSafe}%</div></div>
       <button class="btn-editar" onclick="editarObra(${obra.id})">Editar</button>
       <button class="btn-excluir" onclick="excluirObra(${obra.id})">Excluir</button>
       <h4>Etapas</h4><div id="etapas-${obra.id}"></div>
       <button onclick="abrirModalAdicionarEtapa(${obra.id})">Adicionar Etapa</button>`;
-    lista.appendChild(div);
-    exibirEtapas(obra);
-  });
-}
+        lista.appendChild(div);
+        exibirEtapas(obra);
+      });
+    }
 
-// ======== CRUD OBRAS ========
-document.getElementById("form-obra").addEventListener("submit", async e=>{
-  e.preventDefault();
-  const novaObra={
-    id:gerarId(),
-    nome:document.getElementById("nome").value,
-    localizacao:document.getElementById("localizacao").value,
-    responsavel:document.getElementById("responsavel").value,
-    status:document.getElementById("status").value,
-    progresso:parseInt(document.getElementById("progresso").value),
-    orcamento:parseFloat(document.getElementById("orcamento").value)||0,
-    etapas:[]
-  };
-  try{
-    const res=await fetch(`${API_URL}/obras`,{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(novaObra)});
-    if(!res.ok) throw new Error("Falha ao cadastrar");
-    const obraCriada=await res.json();
-    obras.push(obraCriada);
-    exibirObras(); salvarCache(); e.target.reset();
-  }catch(err){ alert("Erro ao cadastrar: "+err.message); }
-});
+    // ======== CRUD OBRAS ========
+    document.getElementById("form-obra").addEventListener("submit", async e => {
+      e.preventDefault();
+      const novaObra = {
+        id: gerarId(),
+        nome: document.getElementById("nome").value,
+        localizacao: document.getElementById("localizacao").value,
+        responsavel: document.getElementById("responsavel").value,
+        status: document.getElementById("status").value,
+        progresso: parseInt(document.getElementById("progresso").value),
+        orcamento: parseFloat(document.getElementById("orcamento").value) || 0,
+        etapas: []
+      };
+      obras.push(novaObra);
+      exibirObras(); salvarCache(); e.target.reset();
+    });
 
-async function excluirObra(id){
-  if(!confirm("Tem certeza que deseja excluir esta obra?")) return;
-  try{
-    await fetch(`${API_URL}/obras/${id}`,{method:"DELETE"});
-    obras=obras.filter(o=>o.id!==id); exibirObras(); salvarCache();
-  }catch(err){ alert("Erro ao excluir: "+err.message); }
-}
-
-async function editarObra(id){
-  const obra=obras.find(o=>o.id===id);
-  if(!obra) return;
-  abrirModal("Editar Obra",`
+    async function excluirObra(id) { if (!confirm("Tem certeza que deseja excluir esta obra?")) return; obras = obras.filter(o => o.id !== id); exibirObras(); salvarCache(); }
+    async function editarObra(id) {
+      const obra = obras.find(o => o.id === id);
+      if (!obra) return;
+      abrirModal("Editar Obra", `
     <label>Nome:</label><input type="text" name="nome" value="${obra.nome}" required>
     <label>Localização:</label><input type="text" name="localizacao" value="${obra.localizacao}" required>
-    <label>Responsável:</label><input type="text" name="responsavel" value="${obra.responsavel||""}">
+    <label>Responsável:</label><input type="text" name="responsavel" value="${obra.responsavel || ""}">
     <label>Status:</label>
     <select name="status">
-      <option ${obra.status==="Inicial"?"selected":""}>Inicial</option>
-      <option ${obra.status==="Em andamento"?"selected":""}>Em andamento</option>
-      <option ${obra.status==="Concluída"?"selected":""}>Concluída</option>
+      <option ${obra.status === "Inicial" ? "selected" : ""}>Inicial</option>
+      <option ${obra.status === "Em andamento" ? "selected" : ""}>Em andamento</option>
+      <option ${obra.status === "Concluída" ? "selected" : ""}>Concluída</option>
     </select>
     <label>Progresso (%):</label><input type="number" name="progresso" min="0" max="100" value="${obra.progresso}">
     <label>Orçamento (R$):</label><input type="number" name="orcamento" min="0" value="${obra.orcamento}">
-  `, async data=>{
-    try{
-      const res=await fetch(`${API_URL}/obras/${id}`,{method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({...obra, nome:data.nome, localizacao:data.localizacao, responsavel:data.responsavel, status:data.status, progresso:parseInt(data.progresso), orcamento:parseFloat(data.orcamento)})});
-      if(!res.ok) throw new Error("Falha ao atualizar");
-      const obraAtualizada=await res.json();
-      const index=obras.findIndex(o=>o.id===id);
-      obras[index]=obraAtualizada;
-      exibirObras(); salvarCache();
-    }catch(err){ alert("Erro ao atualizar: "+err.message); }
-  });
-}
+  `, data => {
+        obra.nome = data.nome; obra.localizacao = data.localizacao; obra.responsavel = data.responsavel; obra.status = data.status;
+        obra.progresso = parseInt(data.progresso); obra.orcamento = parseFloat(data.orcamento);
+        exibirObras(); salvarCache();
+      });
+    }
 
-// ======== ETAPAS/MATERIAIS ========
-function abrirModalAdicionarEtapa(obraId){
-  const obra=obras.find(o=>o.id===obraId);
-  abrirModal("Adicionar Etapa",`
+    // ======== ETAPAS/MATERIAIS ========
+    function abrirModalAdicionarEtapa(obraId) {
+      const obra = obras.find(o => o.id === obraId);
+      abrirModal("Adicionar Etapa", `
     <label>Nome da Etapa:</label><input type="text" name="nome" required>
     <label>Status:</label>
     <select name="status">
@@ -234,72 +385,97 @@ function abrirModalAdicionarEtapa(obraId){
       <option value="Em andamento">Em andamento</option>
       <option value="Concluída">Concluída</option>
     </select>
-  `, data=>{
-    obra.etapas.push({id:gerarId(), nome:data.nome, status:data.status, materiais:[]});
-    salvarCache(); exibirObras();
-  });
-}
+  `, data => {
+        obra.etapas.push({ id: gerarId(), nome: data.nome, status: data.status, materiais: [] });
+        salvarCache(); exibirObras();
+      });
+    }
 
-function abrirModalAdicionarMaterial(obraId, etapaId){
-  const obra=obras.find(o=>o.id===obraId);
-  const etapa=obra.etapas.find(e=>e.id===etapaId);
-  abrirModal("Adicionar Material",`
+    function abrirModalAdicionarMaterial(obraId, etapaId) {
+      const obra = obras.find(o => o.id === obraId);
+      const etapa = obra.etapas.find(e => e.id === etapaId);
+      abrirModal("Adicionar Material", `
     <label>Nome do Material:</label><input type="text" name="nome" required>
     <label>Quantidade:</label><input type="number" name="quantidade" required>
     <label>Custo Unitário:</label><input type="number" name="custo" required>
-  `, data=>{
-    etapa.materiais.push({id:gerarId(), nome:data.nome, quantidade:parseFloat(data.quantidade), custoUnit:parseFloat(data.custo)});
-    salvarCache(); exibirObras();
-  });
-}
+  `, data => {
+        etapa.materiais.push({ id: gerarId(), nome: data.nome, quantidade: parseFloat(data.quantidade), custoUnit: parseFloat(data.custo) });
+        salvarCache(); exibirObras();
+      });
+    }
 
-async function excluirEtapa(obraId, etapaId){
-  if(!confirm("Excluir etapa e todos os materiais?")) return;
-  const obra=obras.find(o=>o.id===obraId);
-  obra.etapas=obra.etapas.filter(e=>e.id!==etapaId);
-  exibirObras(); salvarCache();
-}
-async function editarEtapa(obraId, etapaId){
-  const obra=obras.find(o=>o.id===obraId);
-  const etapa=obra.etapas.find(e=>e.id===etapaId);
-  abrirModal("Editar Etapa",`
+    async function excluirEtapa(obraId, etapaId) {
+      if (!confirm("Excluir etapa e todos os materiais?")) return;
+      const obra = obras.find(o => o.id === obraId);
+      obra.etapas = obra.etapas.filter(e => e.id !== etapaId);
+      exibirObras(); salvarCache();
+    }
+    async function editarEtapa(obraId, etapaId) {
+      const obra = obras.find(o => o.id === obraId);
+      const etapa = obra.etapas.find(e => e.id === etapaId);
+      abrirModal("Editar Etapa", `
     <label>Nome:</label><input type="text" name="nome" value="${etapa.nome}" required>
     <label>Status:</label>
     <select name="status">
-      <option value="Inicial" ${etapa.status==="Inicial"?"selected":""}>Inicial</option>
-      <option value="Em andamento" ${etapa.status==="Em andamento"?"selected":""}>Em andamento</option>
-      <option value="Concluída" ${etapa.status==="Concluída"?"selected":""}>Concluída</option>
+      <option value="Inicial" ${etapa.status === "Inicial" ? "selected" : ""}>Inicial</option>
+      <option value="Em andamento" ${etapa.status === "Em andamento" ? "selected" : ""}>Em andamento</option>
+      <option value="Concluída" ${etapa.status === "Concluída" ? "selected" : ""}>Concluída</option>
     </select>
-  `, data=>{
-    etapa.nome=data.nome; etapa.status=data.status;
-    salvarCache(); exibirObras();
-  });
-}
+  `, data => {
+        etapa.nome = data.nome; etapa.status = data.status;
+        salvarCache(); exibirObras();
+      });
+    }
+    async function excluirMaterial(obraId, etapaId, materialId) {
+      if (!confirm("Excluir material?")) return;
+      const obra = obras.find(o => o.id === obraId);
+      const etapa = obra.etapas.find(e => e.id === etapaId);
+      etapa.materiais = etapa.materiais.filter(m => m.id !== materialId);
+      exibirObras(); salvarCache();
+    }
 
-async function excluirMaterial(obraId, etapaId, materialId){
-  if(!confirm("Excluir material?")) return;
-  const obra=obras.find(o=>o.id===obraId);
-  const etapa=obra.etapas.find(e=>e.id===etapaId);
-  etapa.materiais=etapa.materiais.filter(m=>m.id!==materialId);
-  exibirObras(); salvarCache();
-}
+    // ======== EXPORTAÇÃO ========
+    function exportarExcel() {
+      if (!obras.length) { alert("Nenhuma obra para exportar!"); return; }
+      const dados = [];
+      obras.forEach(obra => {
+        dados.push({ Obra: obra.nome, Localizacao: obra.localizacao, Responsavel: obra.responsavel, Status: obra.status, Progresso: obra.progresso, Orcamento: obra.orcamento });
+        (obra.etapas || []).forEach(etapa => {
+          dados.push({ Obra: "→ " + etapa.nome, Localizacao: etapa.status, Responsavel: "", Status: "", Progresso: "", Orcamento: "" });
+          (etapa.materiais || []).forEach(mat => {
+            dados.push({ Obra: "   - " + mat.nome, Localizacao: "Qtd: " + mat.quantidade, Responsavel: "Custo: " + mat.custoUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), Status: "", Progresso: "", Orcamento: "" });
+          });
+        });
+      });
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Obras");
+      XLSX.writeFile(wb, "obras.xlsx");
+    }
 
-// ======== INICIALIZAÇÃO ========
-const cacheInicial=carregarCache();
-if(cacheInicial.length){ obras=cacheInicial; exibirObras(); }
+    function exportarPDF() {
+      if (!obras.length) { alert("Nenhuma obra para exportar!"); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let dados = [];
+      obras.forEach(obra => {
+        dados.push([obra.nome, obra.localizacao, obra.responsavel, obra.status, obra.progresso + "%", obra.orcamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]);
+        (obra.etapas || []).forEach(etapa => {
+          dados.push(["→ " + etapa.nome, etapa.status, "", "", "", ""]);
+          (etapa.materiais || []).forEach(mat => {
+            dados.push(["   - " + mat.nome, "Qtd: " + mat.quantidade, "Custo: " + mat.custoUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), "", "", ""]);
+          });
+        });
+      });
+      doc.autoTable({ head: [["Obra/Etapa/Material", "Status", "Responsável", "Campo4", "Progresso", "Orçamento"]], body: dados, startY: 20, theme: 'grid' });
+      doc.save("obras.pdf");
+    }
 
-async function carregarObras(){
-  try{
-    const res=await fetch(`${API_URL}/obras`);
-    if(!res.ok) throw new Error("Falha ao carregar obras");
-    obras=await res.json(); exibirObras(); salvarCache();
-  }catch(err){
-    console.warn("Usando cache por falha na API:",err.message);
-    if(!cacheInicial.length) document.getElementById("lista-obras").innerHTML='<p>Não foi possível carregar da API e não há dados em cache.</p>';
-  }
-}
-carregarObras();
-</script>
+    // ======== INICIALIZAÇÃO ========
+    const cacheInicial = carregarCache();
+    if (cacheInicial.length) { obras = cacheInicial; exibirObras(); }
+  </script>
 
 </body>
+
 </html>
